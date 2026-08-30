@@ -1,0 +1,6 @@
+% pdf
+
+# Convert markdown to PDF
+pandoc --pdf-engine=pdfroff --toc-depth=1 <markdown> -o <pdf>
+
+$ markdown: fd ".*\.md"

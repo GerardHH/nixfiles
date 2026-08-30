@@ -1,10 +1,12 @@
 {
+  config,
   dotfilesDir,
   username,
-  pkgs,
   ...
 }:
 {
+  _module.args.link = path: config.lib.file.mkOutOfStoreSymlink "${dotfilesDir}/${path}";
+
   home.username = username;
   home.homeDirectory = "/home/${username}";
   home.stateVersion = "26.05";
@@ -14,7 +16,5 @@
   # warnings and puts Home Manager's data dirs on XDG_DATA_DIRS.
   targets.genericLinux.enable = true;
 
-  home.packages = with pkgs; [
-    hello
-  ];
+  xdg.enable = true;
 }

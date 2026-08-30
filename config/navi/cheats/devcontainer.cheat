@@ -1,0 +1,26 @@
+% devcontainer
+
+# Setup devcontainer
+<setup-devcontainer>
+
+# Setup devcontainer with dotfiles
+<setup-devcontainer> \
+--dotfiles-repository="https://github.com/GerardHH/dotfiles" \
+--dotfiles-install-command="automation/setup.sh"
+
+# Drop in devcontainer
+devcontainer exec --workspace-folder=<workspace-folder> --docker-path=podman -- /bin/bash
+
+$ setup-devcontainer: echo "\
+devcontainer up --workspace-folder=<workspace-folder> --docker-path=podman \
+<remove-existing-container> \
+--mount='type=bind,source=${HOME}/dotfiles/.env,target=/run/secrets/.env' \
+--additional-features='{\"ghcr.io/meaningful-ooo/devcontainer-features/homebrew:2\": { \"shallowClone\": true }}' \
+"
+
+$ workspace-folder: find . -type d -path "*/.devcontainer" -exec dirname {} \;
+
+$ remove-existing-container: echo "\
+--remove-existing-container \
+" | tr " " "\n"
+

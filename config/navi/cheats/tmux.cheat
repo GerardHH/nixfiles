@@ -1,0 +1,10 @@
+% tmux
+
+# List all servers
+tmux ls
+
+# Kill all servers
+tmux kill-server
+
+# Source config
+tmux source-file ~/.config/tmux/tmux.conf

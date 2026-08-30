@@ -1,0 +1,10 @@
+% gpg
+
+# Encrypt, using public key
+gpg --output <file_name>.gpg --encrypt --recipient gh.heshusius@gmail.com <file_name>
+
+# Decrypt, using private key
+gpg --output <file_name> --decrypt <file_name>.gpg
+
+# Delete secret key
+gpg --delete-secret-key "<user_name>"
