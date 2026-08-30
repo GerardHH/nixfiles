@@ -1,0 +1,46 @@
+git:
+  branchLogCmd: 'git list-tree'
+  diffRenderers:
+    - colorArg: always
+      command: delta --dark --paging=never --tabs=4
+  allBranchesLogCmds:
+    - git list-tree --all
+customCommands:
+  - key: 'U'
+    context: 'files'
+    command: 'git submodule-update-recursive-init'
+    description: 'Update all submodules'
+confirmOnQuit: true
+quitOnTopLevelReturn: true
+disableStartupPopups: true
+gui:
+  showCommandLog: false
+  nerdFontVersion: "2"
+  # https://github.com/catppuccin/lazygit/blob/main/themes-mergable/mocha/blue.yml
+  theme:
+    activeBorderColor:
+      - '#89b4fa'
+      - bold
+    inactiveBorderColor:
+      - '#a6adc8'
+    optionsTextColor:
+      - '#89b4fa'
+    selectedLineBgColor:
+      - '#313244'
+    selectedRangeBgColor:
+      - '#313244'
+    cherryPickedCommitBgColor:
+      - '#45475a'
+    cherryPickedCommitFgColor:
+      - '#89b4fa'
+    unstagedChangesColor:
+      - '#f38ba8'
+    defaultFgColor:
+      - '#cdd6f4'
+    searchingActiveBorderColor:
+      - '#f9e2af'
+os:
+  editPreset: 'nvim'
+keybinding:
+  universal:
+    optionMenu-alt1: "<F1>"

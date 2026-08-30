@@ -38,6 +38,7 @@
           modules = [
             ./home/common.nix
             ./home/shell.nix
+            ./home/tools.nix
           ]
           ++ modules;
         };
