@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, link, ... }:
 {
   fonts.fontconfig.enable = true;
 
@@ -6,4 +6,8 @@
     nixd
     nixfmt
   ];
+
+  xdg.configFile = {
+    "alacritty".source = link "config/alacritty";
+  };
 }
