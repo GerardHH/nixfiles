@@ -1,11 +1,25 @@
 {
-  "permissions": {
-    "deny": [
-      "Read(~/.ssh/**)",
-      "Read(//**/.env)",
-      "Edit(//**)",
-      "Bash(sudo:*)",
-      "Read(~/git/lely/**)"
-    ]
-  }
+    "sandbox": {
+        "enabled": true,
+        "allowUnsandboxedCommands": false,
+        "failIfUnavailable": true,
+        "filesystem": {
+            "denyWrite": [
+                "~"
+            ]
+        }
+    },
+    "permissions": {
+        "deny": [
+            "Read(~/.ssh/**)",
+            "Read(//**/.env)",
+            "Edit(//**)",
+            "Bash(sudo:*)",
+            "Read(~/git/lely/**)",
+            "Read(~/.config/sops/age/**)",
+            "Read(~/.config/sops-nix/secrets/**)",
+            "Read(~/.gitconfig.lely)"
+        ]
+    },
+    "model": "opus"
 }
