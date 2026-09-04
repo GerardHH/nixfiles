@@ -3,13 +3,6 @@
 # Allow dynamic sourcing in known locations
 # shellcheck disable=SC1090,SC1091
 
-# Sources
-source "$HOME"/dotfiles/automation/source_brew.sh
-CARGO="$HOME/.cargo/env"
-if [ -e "$CARGO" ]; then
-	source "$CARGO"
-fi
-
 # Nix
 for _nix_profile in \
 	/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh \
@@ -27,12 +20,6 @@ unset _nix_profile
 
 # Completions
 source /etc/profile.d/bash_completion.sh
-
-if command -v brew >/dev/null 2>&1 && [[ -d "$(brew --prefix)/etc/bash_completion.d" ]]; then
-	for f in "$(brew --prefix)"/etc/bash_completion.d/*; do
-		source "$f"
-	done
-fi
 
 source "${XDG_CONFIG_HOME:-$HOME/.config}/bash/eza.sh"
 source "${XDG_CONFIG_HOME:-$HOME/.config}/bash/history_config.sh"
