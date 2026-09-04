@@ -17,6 +17,7 @@ return {
 			"markdown",
 			"python",
 			"sh",
+			"nix",
 		},
 		keys = {
 			-- lsp
@@ -27,51 +28,73 @@ return {
 			-- View
 			{ "<leader>vL", "<CMD>LspInfo<CR>", desc = "View connected LS's" },
 		},
-		opts = {
-			servers = {
-				bashls = {},
-				clangd = {
-					capabilities = {
-						offsetEncoding = { "utf-16" },
+		opts = function()
+			local nix_flake = vim.env.HOME .. "/nixfiles"
+			local nix_hm_config = vim.env.USER == "ubuntu" and "container" or "host"
+
+			return {
+				servers = {
+					bashls = {},
+					clangd = {
+						capabilities = {
+							offsetEncoding = { "utf-16" },
+						},
+						cmd = {
+							"clangd",
+							"--background-index",
+							"--clang-tidy",
+							"--header-insertion=iwyu",
+							"--completion-style=detailed",
+							"--function-arg-placeholders",
+							"--fallback-style=llvm",
+						},
 					},
-					cmd = {
-						"clangd",
-						"--background-index",
-						"--clang-tidy",
-						"--header-insertion=iwyu",
-						"--completion-style=detailed",
-						"--function-arg-placeholders",
-						"--fallback-style=llvm",
-					},
-				},
-				cmake = {},
-				lua_ls = {
-					settings = {
-						Lua = {
-							runtime = {
-								version = "LuaJIT",
-								path = vim.split(package.path, ";"),
-							},
-							completion = {
-								callSnippet = "Replace",
-							},
-							workspace = {
-								checkThirdParty = false,
-								library = {
-									vim.env.VIMRUNTIME,
-									"${3rd}/luv/library",
-									"${3rd}/busted/library",
+					cmake = {},
+					lua_ls = {
+						settings = {
+							Lua = {
+								runtime = {
+									version = "LuaJIT",
+									path = vim.split(package.path, ";"),
+								},
+								completion = {
+									callSnippet = "Replace",
+								},
+								workspace = {
+									checkThirdParty = false,
+									library = {
+										vim.env.VIMRUNTIME,
+										"${3rd}/luv/library",
+										"${3rd}/busted/library",
+									},
 								},
 							},
 						},
 					},
+					marksman = {},
+					nixd = {
+						cmd = { "nixd", "--log=error" },
+						settings = {
+							nixd = {
+								nixpkgs = {
+									expr = ('import (builtins.getFlake "%s").inputs.nixpkgs { }'):format(nix_flake),
+								},
+								options = {
+									["home-manager"] = {
+										expr = ('(builtins.getFlake "%s").inputs.nixpkgs { }'):format(
+											nix_flake,
+											nix_hm_config
+										),
+									},
+								},
+							},
+						},
+					},
+					pyright = {},
+					ruff = {},
 				},
-				marksman = {},
-				nixd = {},
-				pyright = {},
-				ruff = {},
-			},
-		},
+			}
+		end,
 		config = function(_, opts)
 			local function register_lspconfig_commands(bufnr, commands)
 				for name, def in pairs(commands or {}) do
@@ -203,11 +226,12 @@ return {
 				end
 			end
 
+			local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
+
 			null_ls.setup({
 				sources = sources,
 				on_attach = function(client, bufnr)
 					if client:supports_method("textDocument/formatting") then
-						local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 						vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
 						vim.api.nvim_create_autocmd("BufWritePre", {
 							group = augroup,
