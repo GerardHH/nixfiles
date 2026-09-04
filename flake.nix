@@ -39,6 +39,7 @@
             ./home/common.nix
             ./home/shell.nix
             ./home/tools.nix
+            ./home/nvim.nix
           ]
           ++ modules;
         };

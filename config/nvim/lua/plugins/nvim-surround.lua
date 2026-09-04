@@ -1,0 +1,30 @@
+return {
+	"kylechui/nvim-surround",
+	version = "*",
+	lazy = true,
+	keys = {
+		{ "<leader>s", desc = "Surround + movement || Surround+" },
+		{ "<leader>ss", desc = "Surround current line" },
+		{ "<leader>sS", desc = "Surround lines" },
+		{ "<leader>s", mode = { "v", "x" }, desc = "Surround visual" },
+		{ "<leader>S", mode = { "v", "x" }, desc = "Surround visual line" },
+		{ "<leader>sd", desc = "Surround delete" },
+		{ "<leader>sc", desc = "Surround change" },
+		{ "<leader>sC", desc = "Surround change line" },
+	},
+	opts = {
+		keymaps = {
+			insert = false,
+			insert_line = false,
+			normal = "<leader>s",
+			normal_cur = "<leader>ss",
+			normal_line = "<leader>sS",
+			normal_cur_line = false,
+			visual = "<leader>s",
+			visual_line = "<leader>S",
+			delete = "<leader>sd",
+			change = "<leader>sc",
+			change_line = "<leader>sC",
+		},
+	},
+}
