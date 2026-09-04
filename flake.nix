@@ -45,13 +45,13 @@
           };
           modules = [
             ./home/common.nix
-            ./home/shell.nix
-            ./home/tools.nix
-            ./home/nvim.nix
             ./home/languages/bash.nix
             ./home/languages/lua.nix
             ./home/languages/markdown.nix
             ./home/languages/nix.nix
+            ./home/nvim.nix
+            ./home/shell.nix
+            ./home/tools.nix
           ]
           ++ modules;
         };
