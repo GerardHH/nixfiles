@@ -5,10 +5,11 @@
 }:
 {
   home.packages = with pkgs; [
-    btop
+    lazygit
+    delta
   ];
 
   xdg.configFile = {
-    "btop".source = link "config/btop";
+    "lazygit".source = link "config/lazygit";
   };
 }
