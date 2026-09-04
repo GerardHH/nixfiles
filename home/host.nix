@@ -2,6 +2,7 @@
 {
   imports = [
     ./claude.nix
+    ./git.nix
     ./languages/c_cpp.nix
     ./languages/python.nix
     ./languages/rust.nix
