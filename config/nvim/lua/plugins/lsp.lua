@@ -81,6 +81,14 @@ return {
 				end
 			end
 
+			local function server_binary(name)
+				local ok, resolved = pcall(function() return vim.lsp.config[name] end)
+				if not ok or type(resolved) ~= "table" or type(resolved.cmd) ~= "table" then return nil end
+				return resolved.cmd[1]
+			end
+
+			local missing = {}
+
 			for name, extending_config in pairs(opts.servers) do
 				local capabilities = require("blink.cmp").get_lsp_capabilities()
 				local on_attach = function(client, bufnr)
@@ -99,7 +107,26 @@ return {
 
 				-- lspconfig already setup the LS config defaults, so we only need to add our specifics
 				vim.lsp.config(name, extending_config)
-				vim.lsp.enable(name)
+
+				local binary = server_binary(name)
+				if binary and vim.fn.executable(binary) == 0 then
+					table.insert(missing, string.format("%s (%s)", name, binary))
+				else
+					vim.lsp.enable(name)
+				end
+			end
+
+			if #missing > 0 then
+				table.sort(missing)
+				vim.schedule(
+					function()
+						vim.notify(
+							"Not install, server disabled:\n" .. table.concat(missing, "\n"),
+							vim.log.levels.WARN,
+							{ tetile = "LSP" }
+						)
+					end
+				)
 			end
 
 			vim.lsp.inlay_hint.enable()
@@ -121,6 +148,18 @@ return {
 					})
 				end,
 			})
+		end,
+		cond = function()
+			if vim.fn.executable("rust-analyzer") == 1 then return true end
+			vim.schedule(
+				function()
+					vim.notify(
+						"Not installed, rustaceanvim disabled:\nrust-analyzer",
+						vim.log.levels.WARN,
+						{ title = "LSP" }
+					)
+				end
+			)
 		end,
 	},
 	-- Linting & Formatting
@@ -144,21 +183,31 @@ return {
 				})
 			end
 
-			local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
-
 			local null_ls = require("null-ls")
 
+			local sources = {}
+			local missing = {}
+
+			for _, candidate in ipairs({
+				{ null_ls.builtins.diagnostics.mypy, "mypy" }, -- python
+				{ null_ls.builtins.formatting.black, "black" }, -- python
+				{ null_ls.builtins.formatting.clang_format, "clang-format" }, -- c/c++
+				{ null_ls.builtins.formatting.shfmt, "shfmt" }, -- shell
+				{ null_ls.builtins.formatting.stylua, "stylua" }, -- lua
+				{ null_ls.builtins.formatting.nixfmt, "nixfmt" }, -- nix
+			}) do
+				if vim.fn.executable(candidate[2]) == 1 then
+					table.insert(sources, candidate[1])
+				else
+					table.insert(missing, candidate[2])
+				end
+			end
+
 			null_ls.setup({
-				sources = {
-					null_ls.builtins.diagnostics.mypy, -- python
-					null_ls.builtins.formatting.black, -- python
-					null_ls.builtins.formatting.clang_format, -- c/c++
-					null_ls.builtins.formatting.shfmt, -- shell
-					null_ls.builtins.formatting.stylua, -- lua
-					null_ls.builtins.formatting.nixfmt, -- nix
-				},
+				sources = sources,
 				on_attach = function(client, bufnr)
 					if client:supports_method("textDocument/formatting") then
+						local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 						vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
 						vim.api.nvim_create_autocmd("BufWritePre", {
 							group = augroup,

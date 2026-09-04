@@ -40,6 +40,10 @@
             ./home/shell.nix
             ./home/tools.nix
             ./home/nvim.nix
+            ./home/languages/bash.nix
+            ./home/languages/lua.nix
+            ./home/languages/markdown.nix
+            ./home/languages/nix.nix
           ]
           ++ modules;
         };
