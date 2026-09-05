@@ -11,6 +11,10 @@
       url = "github:lincheney/fzf-tab-completion";
       flake = false;
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -18,6 +22,7 @@
       nixpkgs,
       home-manager,
       fzf-tab-completion,
+      sops-nix,
       ...
     }:
     let
@@ -40,7 +45,7 @@
         home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
           extraSpecialArgs = {
-            inherit username fzf-tab-completion;
+            inherit username fzf-tab-completion sops-nix;
             dotfilesDir = "/home/${username}/nixfiles";
           };
           modules = [

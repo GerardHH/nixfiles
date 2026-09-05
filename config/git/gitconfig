@@ -1,0 +1,73 @@
+[user]
+    name = Gerard Heshusius
+    email = gh.heshusius@gmail.com
+[alias]
+    add-whitespace-changes = !git add -A && git diff --cached --ignore-all-space | git apply --cached --reverse
+    add-without-whitespace-changes = !git diff --ignore-all-space --no-color "$@" | git apply --cached --ignore-whitespace
+    commit-amend-no-edit = commit --amend --no-edit
+    commit-amend-no-edit-all = !git commit-amend-no-edit --all
+    commit-fixup = commit --fixup
+    commit-fixup-all = commit --all --fixup
+    commit-message = commit --message
+    commit-message-all = commit --all --message
+    conflicts-add = !git add $(git conflicts-list)
+    conflicts-edit = !$EDITOR $(git conflicts-list)
+    conflicts-list = !git ls-files -u | cut -f 2 | sort -u | uniq
+    current-branch-name = rev-parse --abbrev-ref HEAD
+    list-tree = !git log $(git current-branch-name) --color=always --oneline --graph --decorate --remotes=*/$(git current-branch-name) --
+    merge-continue = merge --continue
+    patch = !git --no-pager diff --no-color
+    push-current = !git push $(git remote) $(git current-branch-name)
+    push-current-force = !git push-current --force
+    rebase-autosquash = rebase --interactive --autosquash
+    rebase-interactive = rebase --interactive
+    remote-branch = !git ls-remote $(git remote) $(git branch)
+    reset-remote = !git reset --hard $(git remote)/$(git current-branch-name)
+    submodule-update-recursive-init = submodule update --recursive --init
+    unstage-all = reset HEAD --
+[color]
+	ui = true
+[color "diff-highlight"]
+	oldNormal = red bold
+	oldHighlight = red bold 52
+	newNormal = green bold
+	newHighlight = green bold 22
+[color "diff"]
+	meta = 11
+	frag = magenta bold
+	func = 146 bold
+	commit = yellow bold
+	old = red bold
+	new = green bold
+	whitespace = red reverse
+[core]
+    autocrlf = input
+    editor = vi
+    pager = delta
+[delta]
+    line-numbers = true
+    navigate = true
+[diff]
+    wsErrorHighlight = all
+    colorMoved = default
+[difftool "vimdiff"]
+    cmd = nvim -d \"$LOCAL\" \"$REMOTE\"
+[fetch]
+    prune = true # prune on every fetch
+[interactive]
+	diffFilter = delta --color-only
+[merge]
+    tool = vimdiff
+    conflictstyle = diff3
+[mergetool "vimdiff"]
+    cmd = nvim -d \"$LOCAL\" \"$MERGED\" \"$REMOTE\"
+[pull]
+    rebase = true # use rebase strategy for git pull
+[includeIf "gitdir:~/git/lely/**"]
+    path = ~/.config/git/gitconfig-lely-guard
+[includeIf "gitdir:~/git/lely/**"]
+    path = ~/.config/sops-nix/secrets/gitconfig-lely
+[includeIf "gitdir:/mnt/**"]
+    path = ~/.config/git/gitconfig-lely-guard
+[includeIf "gitdir:/mnt/**"]
+    path = ~/.config/sops-nix/secrets/gitconfig-lely

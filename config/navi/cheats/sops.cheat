@@ -1,0 +1,31 @@
+% sops
+
+# Edit encrypted file in place (decrypt to tmpfs, open $EDITOR, re-encrypt on save)
+sops edit <file_name>
+
+# View encrypted file, without editing
+sops --decrypt <file_name>
+
+# Encrypt an existing plaintext file in place, using .sops.yaml rules
+sops --encrypt --in-place <plain_file>
+
+# Encrypt for a specific recipient, ignoring .sops.yaml
+sops --encrypt --age <age_public_key> --in-place <plain_file>
+
+# Decrypt in place (leaves plaintext on disk, do not commit)
+sops --decrypt --in-place <sops_file>
+
+# Sync recipients with .sops.yaml, after adding or removing a key
+sops updatekeys <sops_file>
+
+# Rotate the data key and re-encrypt all values
+sops rotate --in-place <sops_file>
+
+# Generate a new age key pair
+age-keygen --output ${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt
+
+# Show public key of an age private key (no long form for -y)
+age-keygen -y ${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt
+
+$ sops_file: grep --recursive --files-with-matches --no-messages --exclude-dir=.git --include="*.yaml" --include="*.yml" --include="*.json" --include="*.env" --include="*.ini" "ENC\[AES256_GCM" .
+$ plain_file: grep --recursive --files-without-match --no-messages --exclude-dir=.git --include="*.yaml" --include="*.yml" --include="*.json" --include="*.env" --include="*.ini" "ENC\[AES256_GCM" .
