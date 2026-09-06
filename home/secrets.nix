@@ -20,6 +20,9 @@
       "gitconfig-lely" = {
         sopsFile = ../secrets/git.yaml;
       };
+      "personal" = {
+        sopsFile = ../secrets/ssh.yaml;
+      };
     };
   };
 }
