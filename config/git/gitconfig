@@ -63,6 +63,8 @@
     cmd = nvim -d \"$LOCAL\" \"$MERGED\" \"$REMOTE\"
 [pull]
     rebase = true # use rebase strategy for git pull
+[url "ssh://git@github.com/"]
+    pushInsteadOf = https://github.com/
 [includeIf "gitdir:~/git/lely/**"]
     path = ~/.config/git/gitconfig-lely-guard
 [includeIf "gitdir:~/git/lely/**"]
