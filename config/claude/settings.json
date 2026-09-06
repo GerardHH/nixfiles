@@ -25,6 +25,7 @@
         }
     },
     "permissions": {
+        "defaultMode": "auto",
         "deny": [
             "Read(~/.ssh/**)",
             "Read(//**/.env)",
