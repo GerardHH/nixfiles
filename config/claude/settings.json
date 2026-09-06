@@ -4,6 +4,9 @@
         "allowUnsandboxedCommands": false,
         "failIfUnavailable": true,
         "filesystem": {
+            "denyRead": [
+                "/run/user/1000/secrets.d"
+            ],
             "denyWrite": [
                 "~"
             ]
@@ -29,8 +32,8 @@
             "Bash(sudo:*)",
             "Read(~/git/lely/**)",
             "Read(~/.config/sops/age/**)",
-            "Read(~/.config/sops-nix/secrets/**)",
-            "Read(~/gitconfig-lely)"
+            "Read(~/.config/sops-nix/**)",
+            "Read(//**/secrets.d/**)"
         ]
     },
     "model": "opus"
