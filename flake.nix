@@ -54,6 +54,7 @@
             ./home/languages/lua.nix
             ./home/languages/markdown.nix
             ./home/languages/nix.nix
+            ./home/languages/node.nix
             ./home/nvim.nix
             ./home/shell.nix
             ./home/tools.nix

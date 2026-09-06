@@ -15,6 +15,11 @@ unset _nix_profile
 [ -f "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh" ] &&
 	. "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
 
+# pre-commit rejects executables under $HOME as "not system" and falls back to
+# downloading its own node. The profile's store path is outside $HOME, so the
+# same binaries qualify.
+export PATH="$(readlink --canonicalize "$HOME/.nix-profile")/bin:$PATH"
+
 # INFO If not running interactively, then only source and skip the rest
 [[ $- != *i* ]] && return
 
@@ -35,6 +40,7 @@ alias vi='nvim'
 export EDITOR="nvim"
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 export NAVI_PATH="$HOME/.config/navi/cheats"
+export PRE_COMMIT_HOME="${HOME}/.cache/pre-commit" # Force pre-commit to look at consolidated cache
 
 # Start up executions
 oh-my-posh disable notice
