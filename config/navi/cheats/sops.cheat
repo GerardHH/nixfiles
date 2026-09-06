@@ -1,10 +1,10 @@
 % sops
 
 # Edit encrypted file in place (decrypt to tmpfs, open $EDITOR, re-encrypt on save)
-sops edit <file_name>
+sops edit <sops_file>
 
 # View encrypted file, without editing
-sops --decrypt <file_name>
+sops --decrypt <sops_file>
 
 # Encrypt an existing plaintext file in place, using .sops.yaml rules
 sops --encrypt --in-place <plain_file>
