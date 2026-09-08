@@ -1,21 +1,36 @@
 #!/usr/bin/env bash
+#
+# Installs Nix with flakes and activates a Home Manager profile on a fresh machine.
+# Idempotent: skips the Nix install when /nix is already populated.
+#
+# Usage:
+#   install.sh [profile]
+#
+# Arguments:
+#   profile - profile to activate. If empty, defaults to "container" if in container.
+#             Otherwise what was recorded in '~/.config/nixfiles/profile'.
+#             If non apply, then "personal".
+#
+# Outputs:
+#   Writes progress to stdout and diagnostics to stderr.
+#   Records the activated profile in '~/.config/nixfiles/profile'.
+#
+# Returns:
+#   0 on success; non-zero from a failed precondition or from home-manager.
+
 set -o errexit -o nounset -o pipefail
 
-SCRIPT_PATH="$(realpath -- "${BASH_SOURCE[0]}")"
-REPO_DIR="$(dirname -- "${SCRIPT_PATH}")"
-# shellcheck source=lib/common.sh
-source "${REPO_DIR}/lib/common.sh"
+#shellcheck source=./lib/common.sh
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 [[ "$(uname --kernel-name)" == "Linux" ]] || die "This script targets Linux."
 [[ ${EUID} -ne 0 ]] || die "Run as your normal user; sudo is invoked where needed."
 command -v curl >/dev/null || die "curl missing: sudo apt install --yes curl"
 command -v git >/dev/null || die "git missing: sudo apt install --yes git"
-# [[ -d /run/systemd/system ]] ||
-# 	warn "No systemd detected. Multi-user Nix needs it; on WSL enable systemd first."
 
-PROFILE="${1:-$(detect_profile)}"
+PROFILE="$(resolve_profile "${1:-}")"
+require_profile "${NIXFILES_REPO_DIR}" "${PROFILE}"
 
-# 1. Nix, with flakes + nix-command enabled in /etc/nix/nix.conf
 if [[ -e /nix/var/nix/profiles/default ]]; then
 	log "Nix already present, skipping install"
 else
@@ -28,13 +43,10 @@ fi
 load_nix
 command -v nix >/dev/null || diagnose_missing_nix
 
-# 2. Flakes evaluate from the git index, so untracked files are invisible
-require_git_tracked "${REPO_DIR}"
+require_git_tracked "${NIXFILES_REPO_DIR}"
 
-# 3. First run bootstraps via `nix run`; after that
-#    programs.home-manager.enable puts the binary in your profile.
-log "Activating ${PROFILE}"
-hm_switch "${REPO_DIR}" "${PROFILE}"
+hm_switch "${NIXFILES_REPO_DIR}" "${PROFILE}"
 
-log "Done. Open a new shell, then rebuild with:"
-printf '    home-manager switch --flake %s#%s\n' "${REPO_DIR}" "${PROFILE}"
+is_container || write_profile "${PROFILE}"
+
+log "Done. Open a new shell, then rebuild with: 'nix-switch.sh'"
