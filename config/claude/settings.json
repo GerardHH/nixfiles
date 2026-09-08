@@ -8,7 +8,8 @@
                 "/run/user/1000/secrets.d"
             ],
             "denyWrite": [
-                "~"
+                "~",
+                "~/nixfiles"
             ]
         },
         "network": {
@@ -30,6 +31,7 @@
             "Read(~/.ssh/**)",
             "Read(//**/.env)",
             "Edit(//**)",
+            "Write(//**)",
             "Bash(sudo:*)",
             "Read(~/git/lely/**)",
             "Read(~/.config/sops/age/**)",
