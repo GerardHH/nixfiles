@@ -18,10 +18,10 @@
     # Leaving `path` unset puts the decrypted file at ~/.config/sops-nix/secrets
     secrets = {
       "gitconfig-lely" = {
-        sopsFile = ../secrets/git.yaml;
+        sopsFile = ../../secrets/git.yaml;
       };
       "personal" = {
-        sopsFile = ../secrets/ssh.yaml;
+        sopsFile = ../../secrets/ssh.yaml;
       };
     };
   };

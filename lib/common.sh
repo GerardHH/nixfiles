@@ -38,12 +38,12 @@ die() {
 # Globals:
 #   REMOTE_CONTAINERS - read; set by the devcontainer CLI and VS Code
 # Outputs:
-#   Writes "container" or "host" to stdout.
+#   Writes "container" or "personal" to stdout.
 detect_profile() {
 	if [[ -f /run/.containerenv || -f /.dockerenv || -n ${REMOTE_CONTAINERS:-} ]]; then
 		printf 'container\n'
 	else
-		printf 'host\n'
+		printf 'personal\n'
 	fi
 }
 

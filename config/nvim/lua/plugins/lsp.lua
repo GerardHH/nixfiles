@@ -30,7 +30,7 @@ return {
 		},
 		opts = function()
 			local nix_flake = vim.env.HOME .. "/nixfiles"
-			local nix_hm_config = vim.env.USER == "ubuntu" and "container" or "host"
+			local nix_hm_config = vim.env.USER == "ubuntu" and "container" or "personal"
 
 			return {
 				servers = {

@@ -48,34 +48,19 @@
             inherit username fzf-tab-completion sops-nix;
             dotfilesDir = "/home/${username}/nixfiles";
           };
-          modules = [
-            ./home/common.nix
-            ./home/languages/bash.nix
-            ./home/languages/lua.nix
-            ./home/languages/markdown.nix
-            ./home/languages/nix.nix
-            ./home/languages/node.nix
-            ./home/nvim.nix
-            ./home/shell.nix
-            ./home/tools.nix
-          ]
-          ++ modules;
+          modules = [ ./home/common.nix ] ++ modules;
         };
     in
     {
       homeConfigurations = {
         container = mkHome {
           username = "ubuntu";
-          modules = [
-            ./home/container.nix
-          ];
+          modules = [ ./home/profiles/container ];
         };
 
-        host = mkHome {
+        personal = mkHome {
           username = "gerard";
-          modules = [
-            ./home/host.nix
-          ];
+          modules = [ ./home/profiles/personal ];
         };
       };
     };

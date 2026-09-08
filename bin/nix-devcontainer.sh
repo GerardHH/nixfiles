@@ -6,7 +6,7 @@ REPO_DIR="$(dirname -- "$(dirname -- "${SCRIPT_PATH}")")"
 # shellcheck source=../lib/common.sh
 . "${REPO_DIR}/lib/common.sh"
 
-[[ "$(detect_profile)" == "host" ]] ||
+[[ "$(detect_profile)" != "container" ]] ||
 	die "This is a host tool; it drives the dev container through podman."
 
 WORKSPACE="$(realpath -- "${1:-${PWD}}")"
