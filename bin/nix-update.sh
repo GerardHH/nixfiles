@@ -33,7 +33,7 @@ PROFILE="$(resolve_profile "${REQUESTED_PROFILE}")"
 require_profile "${NIXFILES_REPO_DIR}" "${PROFILE}"
 require_profile_prerequisites "${PROFILE}"
 
-require_git_tracked
+require_git_tracked "${NIXFILES_REPO_DIR}"
 
 load_nix
 command -v nix >/dev/null || diagnose_missing_nix

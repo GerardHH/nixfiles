@@ -108,7 +108,10 @@ load_nix() {
 # Returns:
 #   0 if the path is a work tree; otherwise calls die and does not return.
 require_git_tracked() {
-	local repo="$1"
+	local repo
+	repo="${1:-}"
+	[[ -n "${repo}" ]] || die "require_git_tracked: 'repository path' may not be empty"
+
 	git -C "${repo}" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 		die "${repo} is not a git repo; flakes need one."
 
