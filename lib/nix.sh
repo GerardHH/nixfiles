@@ -8,6 +8,9 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/log.sh"
 # Flake reference, defaults to the release-26.05 branch of nix-community/home-manager
 HM_REF="${HM_REF:-github:nix-community/home-manager/release-26.05}"
 
+# Root of the multi-user Nix install, created by the official installer.
+NIXFILES_NIX_PROFILE_DIR="/nix/var/nix/profiles/default"
+
 # Explains why Nix is unavailable, gives advice and terminates.
 # Outputs:
 #   Writes a diagnosis and suggested commands to stderr.
@@ -24,7 +27,7 @@ diagnose_missing_nix() {
     curl --silent --show-error --fail --location \
       https://artifacts.nixos.org/nix-installer | sh -s -- install --enable-flakes
 EOF
-	elif [[ ! -x /nix/var/nix/profiles/default/bin/nix ]]; then
+	elif [[ ! -x ${NIXFILES_NIX_PROFILE_DIR}/bin/nix ]]; then
 		if [[ -e /nix/receipt.json ]]; then
 			cat >&2 <<'EOF'
   /nix exists but holds no nix binary, and an install receipt is present.
@@ -81,8 +84,8 @@ EOF
 load_nix() {
 	local candidate
 	for candidate in \
-		/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh \
-		/nix/var/nix/profiles/default/etc/profile.d/nix.sh \
+		${NIXFILES_NIX_PROFILE_DIR}/etc/profile.d/nix-daemon.sh \
+		${NIXFILES_NIX_PROFILE_DIR}/etc/profile.d/nix.sh \
 		"${HOME}/.nix-profile/etc/profile.d/nix.sh" \
 		/etc/profile.d/nix.sh; do
 		if [[ -e ${candidate} ]]; then
@@ -94,7 +97,7 @@ load_nix() {
 		fi
 	done
 
-	export PATH="/nix/var/nix/profiles/default/bin:${HOME}/.nix-profile/bin:${PATH}"
+	export PATH="${NIXFILES_NIX_PROFILE_DIR}/bin:${HOME}/.nix-profile/bin:${PATH}"
 }
 
 # Verifies a directory is a git work tree and reports untracked files.
@@ -150,4 +153,15 @@ hm_switch() {
 			run "${HM_REF}" -- \
 			switch -b backup --flake "${repo}#${profile}" "$@"
 	fi
+}
+
+# Reports whether Nix is already installed on this machine.
+# Tests for the generated default profile rather than /nix itself, because
+# /nix can exist without a usable install - see diagnose_missing_nix.
+# Globals:
+#   NIXFILES_NIX_PROFILE_DIR - read
+# Returns:
+#   0 when Nix appears installed, 1 otherwise.
+nix_is_installed() {
+	[[ -e ${NIXFILES_NIX_PROFILE_DIR} ]]
 }

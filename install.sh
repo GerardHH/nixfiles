@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Installs Nix with flakes and activates a Home Manager profile on a fresh machine.
-# Idempotent: skips the Nix install when /nix is already populated.
+# Idempotent: skips the Nix install when the default Nix profile already exists.
 #
 # Usage:
 #   install.sh [profile]
@@ -32,7 +32,7 @@ PROFILE="$(resolve_profile "${1:-}")"
 require_profile "${NIXFILES_REPO_DIR}" "${PROFILE}"
 require_profile_prerequisites "${PROFILE}"
 
-if [[ -e /nix/var/nix/profiles/default ]]; then
+if nix_is_installed; then
 	log "Nix already present, skipping install"
 else
 	log "Installing Nix"
