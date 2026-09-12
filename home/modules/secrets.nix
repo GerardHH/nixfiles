@@ -17,7 +17,7 @@
 
     # Leaving `path` unset puts the decrypted file at ~/.config/sops-nix/secrets
     secrets = {
-      "personal" = {
+      "ssh-personal-key" = {
         sopsFile = ../../secrets/ssh.yaml;
       };
     };
