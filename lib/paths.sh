@@ -18,5 +18,11 @@ NIXFILES_HOME_DIR="${NIXFILES_REPO_DIR}/home"
 NIXFILES_MODULES_DIR="${NIXFILES_HOME_DIR}/modules"
 NIXFILES_PROFILES_DIR="${NIXFILES_HOME_DIR}/profiles"
 
-# Encrypted secrets, matched by the .sops.yaml creation rule.
-NIXFILES_SECRETS_DIR="${NIXFILES_REPO_DIR}/secrets"
+# Configuration locations in $HOME
+NIXFILES_XDG_CONFIG="${XDG_CONFIG_HOME:-${HOME}/.config}"
+NIXFILES_CONFIG_DIR="${NIXFILES_XDG_CONFIG}/nixfiles"
+
+# Restored age identities, one file per identity, and the single file sops
+# actually reads. keys.txt is assembled from the parts and must not be edited.
+NIXFILES_AGE_DIR="${NIXFILES_XDG_CONFIG}/sops/age"
+NIXFILES_AGE_KEY_FILE="${NIXFILES_AGE_DIR}/keys.txt"

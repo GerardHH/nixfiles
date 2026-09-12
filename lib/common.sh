@@ -12,4 +12,6 @@ source "${_lib}/log.sh"
 source "${_lib}/profile.sh"
 #shellcheck source=./nix.sh
 source "${_lib}/nix.sh"
+#shellcheck source=./preflight.sh
+source "${_lib}/preflight.sh"
 unset _lib

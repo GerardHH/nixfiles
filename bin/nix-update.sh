@@ -31,6 +31,7 @@ fi
 
 PROFILE="$(resolve_profile "${REQUESTED_PROFILE}")"
 require_profile "${NIXFILES_REPO_DIR}" "${PROFILE}"
+require_profile_prerequisites "${PROFILE}"
 
 require_git_tracked
 

@@ -2,10 +2,13 @@
 #
 # Shared helpers for interacting with supported profiles, should be sourced, never executed.
 
+#shellcheck source=./log.sh
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/log.sh"
+#shellcheck source=./paths.sh
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/paths.sh"
 
 # Plain text file containing which profile is active on this machine
-PROFILE_MARKER="${XDG_CONFIG_HOME:-${HOME}/.config}/nixfiles/profile"
+NIXFILES_PROFILE_MARKER="${NIXFILES_CONFIG_DIR}/profile"
 
 # Reports whether this machine is a container.
 # Detection relies on markers written by the container runtime: Podman
@@ -25,7 +28,7 @@ is_container() {
 # Returns:
 #   0 when a non-empty name was read, 1 otherwise.
 read_profile() {
-	local marker="${PROFILE_MARKER}" name=""
+	local marker="${NIXFILES_PROFILE_MARKER}" name=""
 	[[ -r ${marker} ]] || return 1
 	read -r name <"${marker}" || true
 	[[ -n ${name} ]] || return 1
@@ -43,7 +46,7 @@ write_profile() {
 	[[ -n "${profile}" ]] || die "write_profile: 'profile name' may not be empty"
 
 	local marker
-	marker="${PROFILE_MARKER}"
+	marker="${NIXFILES_PROFILE_MARKER}"
 	mkdir --parents -- "$(dirname -- "${marker}")"
 	printf '%s\n' "${profile}" >"${marker}"
 	log "Recorded profile '${profile}' in ${marker}"
