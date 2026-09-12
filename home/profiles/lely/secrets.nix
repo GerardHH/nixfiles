@@ -15,7 +15,13 @@ in
 
   # The sops home-manager module is imported by ../../modules/secrets.nix,
   # which ../personal pulls in. This file only adds the work-only secret.
-  sops.secrets."gitconfig-lely" = {
-    sopsFile = "${lelySecretsDir}/secrets/git.yaml";
+  sops.secrets = {
+    "gitconfig-lely" = {
+      sopsFile = "${lelySecretsDir}/secrets/git.yaml";
+    };
+    # Named ssh-* so modules/ssh.nix links to it ~/.ssh/lely-config.
+    "ssh-lely-config" = {
+      sopsFile = "${lelySecretsDir}/secrets/ssh.yaml";
+    };
   };
 }

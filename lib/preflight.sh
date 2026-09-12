@@ -12,24 +12,34 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/log.sh"
 #shellcheck source=./paths.sh
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/paths.sh"
 
-# Explains how to restore a missing age identity and terminates.
+# Explains how to restore a missing secrets checkout and terminates.
 # Arguments:
-#   $1 - identity name
-#   $2 - path the identity was expected at
+#   $1 - checkout path
+#   $@ - files that were expected inside it and are not there
 # Returns:
 #   Does not return; exits 1.
-die_missing_age_identity() {
-	printf '\033[1;31merror:\033[0m missing age identity '\''%s'\'' at %s\n\n' "${1}" "${2}" >&2
+die_missing_secrets_checkout() {
+	local checkout="${1}"
+	shift
+	printf '\033[1;31merror:\033[0m secrets checkout at %s is missing %d file(s)\n\n' "${checkout}" "$#" >&2
+	printf '    %s\n' "$@" >&2
 	cat >&2 <<EOF
-  This profile deploys secrets encrypted to the '${1}' recipient, and this
-  file holds the private half. It is never in the repo, so restore it from
-  your password manager as one whole file, comments included:
 
-    mkdir --parents "${NIXFILES_AGE_DIR}"
-    install --mode=600 /dev/null "${2}"
-    \${EDITOR} "${2}"
+  This profile reads its secrets from a checkout, so the material never
+  lands in this public flake. Nothing here can fetch it for you: the
+  remote is not recorded in a public repo, and reaching it needs a work
+  SSH key that no declarative config can bootstrap.
 
-  Without it, activation fails when sops-nix tries to decrypt.
+  On a fresh machine, in order:
+
+    1. Put the work SSH key in place, mode 600.
+    2. Clone the secrets repo to ${checkout}, naming the key
+       explicitly so it works before any deployed ssh config exists:
+
+         GIT_SSH_COMMAND='ssh -i ~/.ssh/<key> -o IdentitiesOnly=yes' \\
+           git clone <remote> "${checkout}"
+
+  Already cloned? Then it is out of date, or on the wrong branch.
 EOF
 	exit 1
 }
@@ -72,45 +82,31 @@ require_age_keys() {
 	log "Assembled age identities into ${NIXFILES_AGE_KEY_FILE}"
 }
 
-# Verifies a secrets checkout is present and holds what the profile reads.
+# Verifies a secrets checkout is present and holds everything the profile
+# reads from it.
 # Deliberately does not clone: the remote is company infrastructure and is
 # not recorded in this public repo, so the checkout is made by hand.
-# Deliberately does not pull either, since a silent
-# update would change what the next activation installs.
+# Deliberately does not pull either, since a silent update would change what
+# the next activation installs.
 # Arguments:
 #   $1 - checkout path
-#   $2 - file that must exist inside it, relative to the checkout
+#   $@ - one or more files that must exist inside it, relative to the checkout
 # Returns:
-#   0 when the checkout is usable; otherwise calls die and does not return.
+#   0 when every file is present; otherwise calls die and does not return.
 require_secrets_checkout() {
-	local checkout expected
+	local checkout
 	checkout="${1:-}"
-	expected="${2:-}"
 	[[ -n "${checkout}" ]] || die "require_secrets_checkout: 'checkout path' may not be empty"
-	[[ -n "${expected}" ]] || die "require_secrets_checkout: 'expected file' may not be empty"
+	shift
 
-	if [[ ! -r "${checkout}/${expected}" ]]; then
-		printf '\033[1;31merror:\033[0m no secrets checkout at %s\n\n' "${checkout}" >&2
-		cat >&2 <<EOF
-  This profile reads its secrets from a checkout, so the material never
-  lands in this public flake. Nothing here can fetch it for you: the
-  remote is not recorded in a public repo, and reaching it needs a work
-  SSH key that no declarative config can bootstrap.
+	(($# > 0)) || die "require_secrets_checkout: needs at least one expected file"
 
-  On a fresh machine, in order:
+	local missing=() expected
+	for expected in "$@"; do
+		[[ -r "${checkout}/${expected}" ]] || missing+=("${expected}")
+	done
 
-    1. Put the work SSH key in place, mode 600.
-    2. Clone the secrets repo to ${checkout}, naming the key
-       explicitly so it works before any deployed ssh config exists:
-
-         GIT_SSH_COMMAND='ssh -i ~/.ssh/<key> -o IdentitiesOnly=yes' \\
-           git clone <remote> "${checkout}"
-
-  Already cloned? Then ${expected} is missing from it: wrong remote, or
-  it needs a pull.
-EOF
-		exit 1
-	fi
+	((${#missing[@]} == 0)) || die_missing_secrets_checkout "${checkout}" "${missing[@]}"
 }
 
 # Runs a profile's own prerequisite checks, when it has any.

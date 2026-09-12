@@ -8,4 +8,6 @@ LELY_SECRETS_DIR="${HOME}/git/lely/nixfiles-secrets"
 # every secret personal deploys, and needs the identity that decrypts them.
 require_age_keys personal lely
 
-require_secrets_checkout "${LELY_SECRETS_DIR}" "secrets/git.yaml"
+require_secrets_checkout "${LELY_SECRETS_DIR}" \
+	"secrets/git.yaml" \
+	"secrets/ssh.yaml"

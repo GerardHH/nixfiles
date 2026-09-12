@@ -8,6 +8,8 @@
     ../../modules/languages/python.nix
     ../../modules/languages/rust.nix
     ../../modules/secrets.nix
+    ../../modules/ssh.nix
+    ./ssh.nix
   ];
 
   fonts.fontconfig.enable = true;
