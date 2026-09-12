@@ -58,6 +58,11 @@
           modules = [ ./home/profiles/container ];
         };
 
+        lely = mkHome {
+          username = "gerard";
+          modules = [ ./home/profiles/lely ];
+        };
+
         personal = mkHome {
           username = "gerard";
           modules = [ ./home/profiles/personal ];
