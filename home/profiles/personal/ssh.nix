@@ -14,7 +14,7 @@
   my.ssh.config = lib.mkOrder 1000 ''
     Host github.com
       User git
-      IdentityFile ~/.ssh/personal-key
+      IdentityFile ~/.ssh/github-personal
       IdentitiesOnly yes
   '';
 }
