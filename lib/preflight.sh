@@ -44,6 +44,26 @@ EOF
 	exit 1
 }
 
+# Explains how to restore a missing SSH key and terminates.
+# Arguments:
+#   $1 - path the key was expected at
+#   $2 - one line on where to get it
+# Returns:
+#   Does not return; exits 1.
+die_missing_ssh_key() {
+	printf '\033[1;31merror:\033[0m no SSH key at %s\n\n' "${1}" >&2
+	cat >&2 <<EOF
+  This key is deliberately not managed by Nix: it is what fetches the
+  secrets, so nothing declarative can bootstrap it. Place it by hand,
+  once per machine:
+
+    install --mode=600 /path/to/key "${1}"
+
+  ${2}
+EOF
+	exit 1
+}
+
 # Verifies every named age identity is present, then assembles them into the
 # one file sops reads.
 # sops.age.keyFile is a single path, so every identity a profile needs has to
@@ -107,6 +127,37 @@ require_secrets_checkout() {
 	done
 
 	((${#missing[@]} == 0)) || die_missing_secrets_checkout "${checkout}" "${missing[@]}"
+}
+
+# Verifies an SSH private key is present, private enough for ssh to accept,
+# and actually parses as a private key.
+# The mode test masks the group and other bits rather than whitelisting 600
+# and 400, because that is the test ssh itself applies.
+# Arguments:
+#   $1 - path to the private key
+#   $2 - one line on where to get it, shown when it is missing
+# Returns:
+#   0 when the key is usable; otherwise calls die and does not return.
+require_ssh_key() {
+	local key_path hint
+	key_path="${1:-}"
+	hint="${2:-}"
+	[[ -n "${key_path}" ]] || die "require_ssh_key: 'key path' may not be empty"
+
+	[[ -r ${key_path} ]] || die_missing_ssh_key "${key_path}" "${hint}"
+
+	local mode
+	mode="$(stat --format='%a' -- "${key_path}")"
+	(((8#${mode} & 8#77) == 0)) ||
+		die "${key_path} is mode ${mode}; ssh refuses a key others can read. Fix with: chmod 600 ${key_path}"
+
+	if command -v ssh-keygen >/dev/null 2>&1; then
+		# </dev/null so an encrypted key fails instead of prompting.
+		ssh-keygen -y -f "${key_path}" >/dev/null 2>&1 </dev/null ||
+			die "${key_path} does not parse as a private key: truncated, wrong format, or passphrase-protected. This setup uses passphrase-less keys."
+	else
+		warn "ssh-keygen not on PATH; skipped validating ${key_path}."
+	fi
 }
 
 # Runs a profile's own prerequisite checks, when it has any.
