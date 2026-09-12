@@ -21,11 +21,12 @@ sops updatekeys <sops_file>
 # Rotate the data key and re-encrypt all values
 sops rotate --in-place <sops_file>
 
-# Generate a new age key pair
-age-keygen --output ${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt
+# Generate a new age identity (one file per identity; keys.txt is assembled from these)
+age-keygen --output ${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/<new_identity>.txt
 
 # Show public key of an age private key (no long form for -y)
-age-keygen -y ${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/keys.txt
+age-keygen -y ${XDG_CONFIG_HOME:-$HOME/.config}/sops/age/<identity>
 
 $ sops_file: grep --recursive --files-with-matches --no-messages --exclude-dir=.git --include="*.yaml" --include="*.yml" --include="*.json" --include="*.env" --include="*.ini" "ENC\[AES256_GCM" .
 $ plain_file: grep --recursive --files-without-match --no-messages --exclude-dir=.git --include="*.yaml" --include="*.yml" --include="*.json" --include="*.env" --include="*.ini" "ENC\[AES256_GCM" .
+$ identity: find ${XDG_CONFIG_HOME:-$HOME/.config}/sops/age -maxdepth 1 -name '*.txt' -printf '%f\n'
