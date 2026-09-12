@@ -1,0 +1,2 @@
+external-sources=true   # follow `source` at all
+source-path=SCRIPTDIR   # resolve source= targets next to the script, not the cwd
