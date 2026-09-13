@@ -6,6 +6,8 @@ let
   lelySecretsDir = "${config.home.homeDirectory}/git/lely/nixfiles-secrets";
 in
 {
+  imports = [ ../../modules/secrets.nix ];
+
   # A string path, not a Nix path literal: the company checkout is read at
   # activation time and never copied into the store, so it never becomes
   # part of this flake and container/personal keep evaluating without it.

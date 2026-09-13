@@ -1,5 +1,7 @@
 { config, lib, ... }:
 {
+  imports = [ ../../modules/ssh.nix ];
+
   # Fail evaluation rather than emit an Include that ssh will silently
   # ignore. A missing fragment is graceful degradation on a machine without
   # company secrets, but on this profile it is a mistake.

@@ -1,5 +1,7 @@
 { config, lib, ... }:
 {
+  imports = [ ../../modules/ssh.nix ];
+
   # Fail evaluation rather than emit a Host block pointing at a key that was
   # never deployed. ssh would just fail to authenticate, with nothing tying
   # the symptom back to a missing secret declaration.
