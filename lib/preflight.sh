@@ -64,6 +64,39 @@ EOF
 	exit 1
 }
 
+# Derives the public half of an SSH key and writes besides it as <key>.pub.
+# Does not error when ssh-keygen is not found.
+# Arguments:
+#   $1 - path to the private key, should already be validated by require_ssh_key
+# Outputs:
+#   Writes a progress message to stdout when the .pub changes.
+# Returns:
+#   0 when the .pub is present and current; otherwise calls die.
+derive_ssh_public_key() {
+	local key_path
+	key_path="${1:-}"
+	[[ -n "${key_path}" ]] || die "derive_ssh_public_key: 'key path' may not be empty"
+
+	if ! command -v ssh-keygen >/dev/null 2>&1; then
+		warn "ssh-keygen not on PATH; skipped deriving ${key_path}.pub."
+		return 0
+	fi
+
+	local derived
+	# </dev/null so an encrypted key fails instead of prompting.
+	derived="$(ssh-keygen -y -f "${key_path}" </dev/null)" ||
+		die "Could not derive a public key from ${key_path}."
+
+	local pub_path="${key_path}.pub"
+	if [[ -r ${pub_path} ]] && [[ "$(cat -- "${pub_path}")" == "${derived}" ]]; then
+		return 0
+	fi
+
+	install --mode=644 /dev/null "${pub_path}"
+	printf '%s\n' "${derived}" >"${pub_path}"
+	log "Derived ${pub_path} from ${key_path}"
+}
+
 # Verifies every named age identity is present, then assembles them into the
 # one file sops reads.
 # sops.age.keyFile is a single path, so every identity a profile needs has to
