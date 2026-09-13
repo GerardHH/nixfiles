@@ -14,12 +14,5 @@
 
   sops = {
     age.keyFile = "${config.xdg.configHome}/sops/age/keys.txt";
-
-    # Leaving `path` unset puts the decrypted file at ~/.config/sops-nix/secrets
-    secrets = {
-      "ssh-github-personal" = {
-        sopsFile = ../../secrets/ssh.yaml;
-      };
-    };
   };
 }

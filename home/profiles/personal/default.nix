@@ -7,8 +7,7 @@
     ../../modules/languages/c_cpp.nix
     ../../modules/languages/python.nix
     ../../modules/languages/rust.nix
-    ../../modules/secrets.nix
-    ../../modules/ssh.nix
+    ./secrets.nix
     ./ssh.nix
   ];
 
