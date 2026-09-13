@@ -22,6 +22,39 @@ is_container() {
 	[[ -f /run/.containerenv || -f /.dockerenv || -n ${REMOTE_CONTAINERS:-} ]]
 }
 
+# Extra options a profile needs on the nix command line, beyond the defaults.
+# Read from an optional file in the profile directory, the same way
+# require_profile_prerequisites picks up preflight.sh: a profile needing
+# nothing extra simply has no file.
+# Lines starting with a long form option are picked up, including everything
+# that follows (such as arguments). All other lines are ignored.
+# Arguments:
+#   $1 - profile name
+# Globals:
+#   NIXFILES_PROFILES_DIR - read
+# Outputs:
+#   Writes one argument per line to stdout. Nothing when the profile has no file.
+profile_nix_args() {
+	local profile
+	profile="${1:-}"
+	[[ -n "${profile}" ]] || die "profile_nix_args: 'profile name' may not be empty"
+
+	local args_file="${NIXFILES_PROFILES_DIR}/${profile}/nix-args"
+	[[ -r ${args_file} ]] || return 0
+
+	# local - restores on return whatever this function changes.
+	local -
+	set -o noglob
+
+	local line
+	while read -r line || [[ -n ${line} ]]; do
+		if [[ ${line} == --* ]]; then
+			# shellcheck disable=SC2086
+			printf '%s\n' ${line}
+		fi
+	done <"${args_file}"
+}
+
 # Reads which profile is active for this machine.
 # Outputs:
 #   Writes the recorded name to stdout when one is set.

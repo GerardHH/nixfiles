@@ -4,6 +4,8 @@
 
 #shellcheck source=./log.sh
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/log.sh"
+#shellcheck source=./profile.sh
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/profile.sh"
 
 # Flake reference, defaults to the release-26.05 branch of nix-community/home-manager
 HM_REF="${HM_REF:-github:nix-community/home-manager/release-26.05}"
@@ -132,6 +134,7 @@ require_git_tracked() {
 # programs.home-manager.enable has installed it.
 #
 # Always passes -b backup, in case of pre-existing files/folders.
+# Checks for and passes profile specific 'nix-args' file. See `profile_nix_args`.
 # Globals:
 #   HM_REF - Flake reference used for bootstrapping
 # Arguments:
@@ -143,15 +146,26 @@ require_git_tracked() {
 # Returns:
 #   The exit status of home-manager switch.
 hm_switch() {
-	local repo="$1" profile="$2"
+	local repo
+	repo="${1:-}"
+	[[ -n "${repo}" ]] || die "hm_switch: 'repository path' may not be empty"
+
+	local profile
+	profile="${2:-}"
+	[[ -n "${profile}" ]] || die "hm_switch: 'profile name' may not be empty"
+
 	shift 2
+
+	local profile_args=()
+	mapfile -t profile_args < <(profile_nix_args "${profile}")
+
 	log "Activating ${profile}"
 	if command -v home-manager >/dev/null 2>&1; then
-		home-manager switch -b backup --flake "${repo}#${profile}" "$@"
+		home-manager switch -b backup --flake "${repo}#${profile}" "${profile_args[@]}" "$@"
 	else
 		nix --extra-experimental-features "nix-command flakes" \
 			run "${HM_REF}" -- \
-			switch -b backup --flake "${repo}#${profile}" "$@"
+			switch -b backup --flake "${repo}#${profile}" "${profile_args[@]}" "$@"
 	fi
 }
 

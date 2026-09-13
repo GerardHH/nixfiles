@@ -1,0 +1,5 @@
+# Evaluating this profile reads its sops secret declarations out of the
+# secrets checkout: an absolute path outside the flake, which pure
+# evaluation refuses with
+#   error: access to absolute path '...' is forbidden in pure evaluation mode
+--impure
