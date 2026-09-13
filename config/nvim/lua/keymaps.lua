@@ -15,6 +15,10 @@ keymap("n", "<C-j>", "<cmd>wincmd j<CR>", { desc = "Navigate to down nvim window
 keymap("n", "<C-k>", "<cmd>wincmd k<CR>", { desc = "Navigate to up nvim window" })
 keymap("n", "<C-l>", "<cmd>wincmd l<CR>", { desc = "Navigate to right nvim window" })
 
+keymap("n", "<leader>bq", "<CMD>bd<CR>", { desc = "Buffer close current" })
+keymap("n", "<leader>ba", "<CMD>%bd | e# | bd#<CR>", { desc = "Buffer close all, except current" })
+keymap("n", "<leader>bA", "<CMD>%bd<CR>", { desc = "Buffer close all" })
+
 -- Resize with arrows
 keymap("n", "<C-Up>", ":resize +2<CR>", { desc = "Expand current view horizontally" })
 keymap("n", "<C-Down>", ":resize -2<CR>", { desc = "Shrink current view horizontally" })
