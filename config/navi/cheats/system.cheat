@@ -7,18 +7,8 @@ $ apt_autoremove: echo "sudo apt autoremove --yes"
 # apt update, upgrade and autoremove
 <apt_update> && <apt_upgrade> && <apt_autoremove>
 
-% brew
-
-$ brew_update: echo "brew update"
-$ brew_upgrade: echo "brew upgrade"
-
-# brew update
-<brew_update> && <brew_upgrade>
-
-
 % system
 @ apt
-@ brew
 
 # Update system
-<apt_update> && <apt_upgrade> && <apt_autoremove> && <brew_update> && <brew_upgrade> && nix_update.sh
+<apt_update> && <apt_upgrade> && <apt_autoremove> && nix_update.sh
