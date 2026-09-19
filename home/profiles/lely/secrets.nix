@@ -6,6 +6,11 @@ let
   lelySecretsDir = "${config.home.homeDirectory}/git/lely/nixfiles-secrets";
   lelyKeysDir = "${lelySecretsDir}/secrets/ssh-keys";
 
+  artifactoryField = key: {
+    sopsFile = "${lelySecretsDir}/secrets/artifactory.yaml";
+    inherit key;
+  };
+
   # One secret per encrypted file in ssh-keys, deployed under the file's
   # own name. This is the reason for --impure.
   lelyKeys = lib.mapAttrs (name: _: {
@@ -37,6 +42,10 @@ in
       "ssh-lely-config" = {
         sopsFile = "${lelySecretsDir}/secrets/ssh.yaml";
       };
+      # Individual fields so that they can be referenced individually.
+      "artifactory-machine" = artifactoryField "machine";
+      "artifactory-username" = artifactoryField "username";
+      "artifactory-password" = artifactoryField "password";
     }
     # Separate definition rather than `//` so that collisions fail loudly.
     lelyKeys

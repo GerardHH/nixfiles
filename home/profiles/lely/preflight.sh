@@ -17,6 +17,7 @@ require_ssh_key "${LELY_SSH_KEY}" \
 derive_ssh_public_key "${LELY_SSH_KEY}"
 
 require_secrets_checkout "${LELY_SECRETS_DIR}" \
+	"secrets/artifactory.yaml" \
 	"secrets/git.yaml" \
 	"secrets/ssh.yaml" \
 	"secrets/ssh-keys"

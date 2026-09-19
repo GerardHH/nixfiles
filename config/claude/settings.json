@@ -35,7 +35,9 @@
             "Read(~/git/lely/**)",
             "Read(~/.config/sops/age/**)",
             "Read(~/.config/sops-nix/**)",
-            "Read(//**/secrets.d/**)"
+            "Read(//**/secrets.d/**)",
+            "Read(~/.netrc)",
+            "Read(~/.jfrog)"
         ]
     },
     "model": "opus"
