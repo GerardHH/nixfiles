@@ -11,8 +11,6 @@
     ./ssh.nix
   ];
 
-  fonts.fontconfig.enable = true;
-
   xdg.configFile = {
     "alacritty".source = link "config/alacritty";
   };

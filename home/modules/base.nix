@@ -5,6 +5,7 @@
 }:
 {
   imports = [
+    ./fonts.nix
     ./languages/bash.nix
     ./languages/lua.nix
     ./languages/markdown.nix
