@@ -11,6 +11,10 @@
       url = "github:lincheney/fzf-tab-completion";
       flake = false;
     };
+    nixgl = {
+      url = "github:nix-community/nixGL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -22,6 +26,7 @@
       nixpkgs,
       home-manager,
       fzf-tab-completion,
+      nixgl,
       sops-nix,
       ...
     }:
@@ -35,6 +40,7 @@
           builtins.elem (nixpkgs.lib.getName pkg) [
             "claude-code"
           ];
+        overlays = [ nixgl.overlays.default ];
       };
 
       mkHome =
