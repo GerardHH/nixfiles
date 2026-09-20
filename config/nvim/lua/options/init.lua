@@ -1,3 +1,5 @@
+require("options.clipboard")
+
 local opt = vim.opt -- for conciseness
 
 opt.fileencoding = "utf-8" -- the encoding written to a file
@@ -25,9 +27,6 @@ opt.hlsearch = true -- highlight all matches on previous search pattern
 opt.termguicolors = true
 opt.background = "dark" -- colorschemes that can be light or dark will be made dark
 opt.signcolumn = "yes" -- show sign column so that text doesn't shift
-
--- clipboard
-opt.clipboard:append("unnamed,unnamedplus") -- use system clipboard as default register
 
 -- split windows
 opt.splitright = true -- split vertical window to the right
