@@ -24,7 +24,12 @@ export PATH="$(readlink --canonicalize "$HOME/.nix-profile")/bin:$PATH"
 [[ $- != *i* ]] && return
 
 # Completions
-source /etc/profile.d/bash_completion.sh
+for _bc in \
+	"$HOME/.nix-profile/share/bash-completion/bash_completion" \
+	/etc/profile.d/bash_completion.sh; do
+	[ -r "$_bc" ] && source "$_bc" && break
+done
+unset _bc
 
 source "${XDG_CONFIG_HOME:-$HOME/.config}/bash/eza.sh"
 source "${XDG_CONFIG_HOME:-$HOME/.config}/bash/history_config.sh"
@@ -49,3 +54,4 @@ oh-my-posh disable notice
 eval "$(navi widget bash)"
 eval "$(zoxide init --cmd cd bash)"
 eval "$(oh-my-posh init bash --config ~/.config/oh-my-posh/theme.toml)"
+source <(carapace _carapace bash)

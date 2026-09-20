@@ -9,7 +9,9 @@
   ];
 
   home.packages = with pkgs; [
+    bash-completion
     bat
+    carapace
     eza
     navi
     oh-my-posh
