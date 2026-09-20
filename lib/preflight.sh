@@ -6,6 +6,12 @@
 # Nothing here knows any profile by name. Each profile declares its own
 # prerequisites in home/profiles/<name>/preflight.sh, using the reusable
 # checks below; this file only supplies the vocabulary and runs the hook.
+#
+# A hook may pull in another profile's hook with inherit_profile_prerequisites,
+# mirroring the way its default.nix imports that profile's module. Age
+# identities are declared into NIXFILES_AGE_IDENTITIES rather than checked on
+# the spot, because sops reads a single file: the whole chain's identities are
+# assembled once, after the last hook has run.
 
 #shellcheck source=./log.sh
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/log.sh"
@@ -193,11 +199,47 @@ require_ssh_key() {
 	fi
 }
 
-# Runs a profile's own prerequisite checks, when it has any.
+# Runs another profile's prerequisite checks, the way a profile's default.nix
+# imports another profile's module.
+# require_profile_prerequisites sources exactly one hook, so a profile that
+# imports another in Nix does not inherit its checks; this makes that
+# inheritance explicit. The guard keeps a diamond, two profiles both
+# inheriting a third, from running anything twice.
+# Arguments:
+#   $1 - name of the profile to inherit from
+# Globals:
+#   NIXFILES_PROFILES_DIR - read
+#   NIXFILES_INHERITED_PROFILES - read and appended to
+# Returns:
+#   0 when the hook ran or had already run; otherwise calls die and does not return.
+inherit_profile_prerequisites() {
+	local profile
+	profile="${1:-}"
+	[[ -n "${profile}" ]] || die "inherit_profile_prerequisites: 'profile name' may not be empty"
+
+	local seen
+	for seen in "${NIXFILES_INHERITED_PROFILES[@]}"; do
+		if [[ ${seen} == "${profile}" ]]; then
+			return 0
+		fi
+	done
+	NIXFILES_INHERITED_PROFILES+=("${profile}")
+
+	local hook="${NIXFILES_PROFILES_DIR}/${profile}/preflight.sh"
+	[[ -r ${hook} ]] ||
+		die "Profile '${profile}' has no preflight.sh at ${hook} to inherit."
+
+	#shellcheck source=/dev/null
+	source "${hook}"
+}
+
+# Runs a profile's own prerequisite checks, when it has any, then assembles
+# every age identity the resulting chain declared.
 # Arguments:
 #   $1 - profile name
 # Globals:
 #   NIXFILES_PROFILES_DIR - read
+#   NIXFILES_INHERITED_PROFILES, NIXFILES_AGE_IDENTITIES - reset, then read
 # Returns:
 #   0 when the profile can be activated; otherwise calls die and does not return.
 require_profile_prerequisites() {
@@ -205,9 +247,20 @@ require_profile_prerequisites() {
 	profile="${1:-}"
 	[[ -n "${profile}" ]] || die "require_profile_prerequisites: 'profile name' may not be empty"
 
+	# Reset per run: both accumulate as the hook chain is sourced.
+	NIXFILES_INHERITED_PROFILES=()
+	NIXFILES_AGE_IDENTITIES=()
+
 	local hook="${NIXFILES_PROFILES_DIR}/${profile}/preflight.sh"
 	[[ -r ${hook} ]] || return 0
 
 	#shellcheck source=/dev/null
 	source "${hook}"
+
+	# sops.age.keyFile is a single path, so every identity the chain declared
+	# has to land in one file. Assembled once, after the chain, so an
+	# inheriting profile extends the list instead of overwriting it.
+	if ((${#NIXFILES_AGE_IDENTITIES[@]} > 0)); then
+		require_age_keys "${NIXFILES_AGE_IDENTITIES[@]}"
+	fi
 }

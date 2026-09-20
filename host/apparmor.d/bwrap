@@ -1,0 +1,12 @@
+abi <abi/4.0>,
+include <tunables/global>
+
+# Give bwrap a profile of its own so it is not transitioned into
+# /etc/apparmor.d/unprivileged_userns, which denies every capability inside
+# the namespace. Same pattern Ubuntu ships for Chrome and Steam.
+# See host/README.md for the reasoning and the trade-off.
+profile bwrap /{usr/bin,nix/store/*-bubblewrap-*/bin}/bwrap flags=(unconfined) {
+  userns,
+
+  include if exists <local/bwrap>
+}

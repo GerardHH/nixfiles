@@ -1,13 +1,17 @@
 #shellcheck shell=bash
 #
-# Credentials the lely profile needs. Sourced by require_profile_prerequisites.
+# Credentials and host state the lely profile needs. Sourced by
+# require_profile_prerequisites.
 
 LELY_SECRETS_DIR="${HOME}/git/lely/nixfiles-secrets"
 LELY_SSH_KEY="${HOME}/.ssh/gitlab-lely"
 
-# Lists personal too: lely imports ../personal in default.nix, so it deploys
-# every secret personal deploys, and needs the identity that decrypts them.
-require_age_keys personal lely
+# lely imports ../personal in default.nix, so it deploys everything personal
+# deploys and needs everything personal checks. The Nix imports compose but
+# the preflight hooks do not, so the inheritance is spelled out here.
+inherit_profile_prerequisites personal
+
+NIXFILES_AGE_IDENTITIES+=(lely)
 
 # Private key is not tracked, check if it exists and is valid.
 require_ssh_key "${LELY_SSH_KEY}" \

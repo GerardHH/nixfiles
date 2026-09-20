@@ -18,6 +18,9 @@ NIXFILES_HOME_DIR="${NIXFILES_REPO_DIR}/home"
 NIXFILES_MODULES_DIR="${NIXFILES_HOME_DIR}/modules"
 NIXFILES_PROFILES_DIR="${NIXFILES_HOME_DIR}/profiles"
 
+# Root-owned fixes Home Manager cannot apply; see host/README.md.
+NIXFILES_HOST_DIR="${NIXFILES_REPO_DIR}/host"
+
 # Configuration locations in $HOME
 NIXFILES_XDG_CONFIG="${XDG_CONFIG_HOME:-${HOME}/.config}"
 NIXFILES_CONFIG_DIR="${NIXFILES_XDG_CONFIG}/nixfiles"
