@@ -1,3 +1,70 @@
+-- All language server, with overrides. Merged on top of the defaults nvim-lspconfig ships.
+local function servers()
+	local nix_flake = vim.env.HOME .. "/nixfiles"
+	local nix_hm_config = vim.env.USER == "ubuntu" and "container" or "personal"
+
+	return {
+		bashls = {},
+		clangd = {
+			capabilities = {
+				offsetEncoding = { "utf-16" },
+			},
+			cmd = {
+				"clangd",
+				"--background-index",
+				"--clang-tidy",
+				"--header-insertion=iwyu",
+				"--completion-style=detailed",
+				"--function-arg-placeholders",
+				"--fallback-style=llvm",
+			},
+		},
+		cmake = {},
+		lua_ls = {
+			settings = {
+				Lua = {
+					runtime = {
+						version = "LuaJIT",
+						path = vim.split(package.path, ";"),
+					},
+					completion = {
+						callSnippet = "Replace",
+					},
+					workspace = {
+						checkThirdParty = false,
+						library = {
+							vim.env.VIMRUNTIME,
+							"${3rd}/luv/library",
+							"${3rd}/busted/library",
+						},
+					},
+				},
+			},
+		},
+		marksman = {},
+		nixd = {
+			cmd = { "nixd", "--log=error" },
+			settings = {
+				nixd = {
+					nixpkgs = {
+						expr = ('import (builtins.getFlake "%s").inputs.nixpkgs { }'):format(nix_flake),
+					},
+					options = {
+						["home-manager"] = {
+							expr = ('(builtins.getFlake "%s").homeConfigurations.%s.options'):format(
+								nix_flake,
+								nix_hm_config
+							),
+						},
+					},
+				},
+			},
+		},
+		pyright = {},
+		ruff = {},
+	}
+end
+
 return {
 	-- LSP
 	{
@@ -24,118 +91,40 @@ return {
 			{ "<leader>lG", vim.lsp.buf.type_definition, desc = "LSP Go to type definition" },
 			{ "<leader>lg", vim.lsp.buf.definition, desc = "LSP Go to definition" },
 			{ "<leader>lh", vim.lsp.buf.hover, desc = "LSP hover documentation" },
-			{ "<leader>ls", "<CMD>ClangdSwitchSourceHeader<CR>", desc = "LSP Switch header/source" },
+			{ "<leader>ls", "<CMD>LspClangdSwitchSourceHeader<CR>", desc = "LSP Switch header/source" },
 			-- View
-			{ "<leader>vL", "<CMD>LspInfo<CR>", desc = "View connected LS's" },
+			{ "<leader>vL", "<CMD>checkhealth vim.lsp<CR>", desc = "View connected LS's" },
 		},
-		opts = function()
-			local nix_flake = vim.env.HOME .. "/nixfiles"
-			local nix_hm_config = vim.env.USER == "ubuntu" and "container" or "personal"
+		init = function()
+			local group = vim.api.nvim_create_augroup("UserLspAttach", { clear = true })
 
-			return {
-				servers = {
-					bashls = {},
-					clangd = {
-						capabilities = {
-							offsetEncoding = { "utf-16" },
-						},
-						cmd = {
-							"clangd",
-							"--background-index",
-							"--clang-tidy",
-							"--header-insertion=iwyu",
-							"--completion-style=detailed",
-							"--function-arg-placeholders",
-							"--fallback-style=llvm",
-						},
-					},
-					cmake = {},
-					lua_ls = {
-						settings = {
-							Lua = {
-								runtime = {
-									version = "LuaJIT",
-									path = vim.split(package.path, ";"),
-								},
-								completion = {
-									callSnippet = "Replace",
-								},
-								workspace = {
-									checkThirdParty = false,
-									library = {
-										vim.env.VIMRUNTIME,
-										"${3rd}/luv/library",
-										"${3rd}/busted/library",
-									},
-								},
-							},
-						},
-					},
-					marksman = {},
-					nixd = {
-						cmd = { "nixd", "--log=error" },
-						settings = {
-							nixd = {
-								nixpkgs = {
-									expr = ('import (builtins.getFlake "%s").inputs.nixpkgs { }'):format(nix_flake),
-								},
-								options = {
-									["home-manager"] = {
-										expr = ('(builtins.getFlake "%s").inputs.nixpkgs { }'):format(
-											nix_flake,
-											nix_hm_config
-										),
-									},
-								},
-							},
-						},
-					},
-					pyright = {},
-					ruff = {},
-				},
-			}
-		end,
-		config = function(_, opts)
-			local function register_lspconfig_commands(bufnr, commands)
-				for name, def in pairs(commands or {}) do
-					vim.api.nvim_buf_create_user_command(bufnr, name, function(args)
-						def[1](args) -- def[1] is the function, def[2] is description
-					end, def[2] or {})
-				end
-			end
-
-			local function server_binary(name)
-				local ok, resolved = pcall(function() return vim.lsp.config[name] end)
-				if not ok or type(resolved) ~= "table" or type(resolved.cmd) ~= "table" then return nil end
-				return resolved.cmd[1]
-			end
-
-			local missing = {}
-
-			for name, extending_config in pairs(opts.servers) do
-				local capabilities = require("blink.cmp").get_lsp_capabilities()
-				local on_attach = function(client, bufnr)
-					if client.server_capabilities["documentSymbolProvider"] then
-						require("nvim-navic").attach(client, bufnr)
+			vim.api.nvim_create_autocmd("LspAttach", {
+				group = group,
+				callback = function(args)
+					local client = assert(vim.lsp.get_client_by_id(args.data.client_id))
+					if client:supports_method("textDocument/documentSymbol") then
+						require("nvim-navic").attach(client, args.buf)
 					end
-					-- This work around is needed to keep the ClangdSwitchSourceHeader working when in a *.h file.
-					-- Otherwise the `commands` should be merged in the table bellow as `commands`.
-					register_lspconfig_commands(bufnr, require("lspconfig")[name].document_config.commands)
-				end
+				end,
+			})
+		end,
+		config = function()
+			vim.lsp.config("*", {
+				capabilities = require("blink.cmp").get_lsp_capabilities(),
+			})
 
-				extending_config = vim.tbl_deep_extend("force", extending_config, {
-					capabilities = capabilities,
-					on_attach = on_attach,
-				})
+			local enabled, missing = {}, {}
 
-				-- lspconfig already setup the LS config defaults, so we only need to add our specifics
-				vim.lsp.config(name, extending_config)
+			for name, override in pairs(servers()) do
+				vim.lsp.config(name, override)
 
-				local binary = server_binary(name)
-				if binary and vim.fn.executable(binary) == 0 then
-					table.insert(missing, string.format("%s (%s)", name, binary))
+				local cmd = (vim.lsp.config[name] or {}).cmd
+				local bin = type(cmd) == "table" and cmd[1] or nil
+
+				if bin and vim.fn.executable(bin) == 0 then
+					table.insert(missing, ("%s (%s)"):format(name, bin))
 				else
-					vim.lsp.enable(name)
+					table.insert(enabled, name)
 				end
 			end
 
@@ -144,14 +133,15 @@ return {
 				vim.schedule(
 					function()
 						vim.notify(
-							"Not install, server disabled:\n" .. table.concat(missing, "\n"),
+							"Not installed, server disabled:\n" .. table.concat(missing, "\n"),
 							vim.log.levels.WARN,
-							{ tetile = "LSP" }
+							{ title = "LSP" }
 						)
 					end
 				)
 			end
 
+			vim.lsp.enable(enabled)
 			vim.lsp.inlay_hint.enable()
 		end,
 	},
