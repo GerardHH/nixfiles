@@ -6,11 +6,7 @@
 {
   imports = [
     ./fonts.nix
-    ./languages/bash.nix
-    ./languages/lua.nix
-    ./languages/markdown.nix
-    ./languages/nix.nix
-    ./languages/node.nix
+    ./languages
     ./nvim.nix
     ./shell.nix
   ];

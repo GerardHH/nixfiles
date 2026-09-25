@@ -1,10 +1,10 @@
--- All language server, with overrides. Merged on top of the defaults nvim-lspconfig ships.
-local function servers()
+local languages = require("languages")
+
+local function server_overrides()
 	local nix_flake = vim.env.HOME .. "/nixfiles"
 	local nix_hm_config = vim.env.USER == "ubuntu" and "container" or "personal"
 
 	return {
-		bashls = {},
 		clangd = {
 			capabilities = {
 				offsetEncoding = { "utf-16" },
@@ -19,7 +19,6 @@ local function servers()
 				"--fallback-style=llvm",
 			},
 		},
-		cmake = {},
 		lua_ls = {
 			settings = {
 				Lua = {
@@ -41,7 +40,6 @@ local function servers()
 				},
 			},
 		},
-		marksman = {},
 		nixd = {
 			cmd = { "nixd", "--log=error" },
 			settings = {
@@ -60,8 +58,6 @@ local function servers()
 				},
 			},
 		},
-		pyright = {},
-		ruff = {},
 	}
 end
 
@@ -75,17 +71,7 @@ return {
 			"SmiteshP/nvim-navic",
 		},
 		lazy = true,
-		ft = {
-			"bash",
-			"c",
-			"cmake",
-			"cpp",
-			"lua",
-			"markdown",
-			"python",
-			"sh",
-			"nix",
-		},
+		ft = languages.filetypes,
 		keys = {
 			-- lsp
 			{ "<leader>lG", vim.lsp.buf.type_definition, desc = "LSP Go to type definition" },
@@ -113,15 +99,20 @@ return {
 				capabilities = require("blink.cmp").get_lsp_capabilities(),
 			})
 
+			local overrides = server_overrides()
 			local enabled, missing = {}, {}
 
-			for name, override in pairs(servers()) do
-				vim.lsp.config(name, override)
+			for _, name in ipairs(languages.servers) do
+				local override = overrides[name]
+				if override then vim.lsp.config(name, override) end
 
-				local cmd = (vim.lsp.config[name] or {}).cmd
+				local resolved = vim.lsp.config[name]
+				local cmd = resolved and resolved.cmd
 				local bin = type(cmd) == "table" and cmd[1] or nil
 
-				if bin and vim.fn.executable(bin) == 0 then
+				if not resolved then
+					table.insert(missing, ("%s (no config found)"):format(name))
+				elseif bin and vim.fn.executable(bin) == 0 then
 					table.insert(missing, ("%s (%s)"):format(name, bin))
 				else
 					table.insert(enabled, name)

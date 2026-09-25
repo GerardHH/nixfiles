@@ -1,17 +1,42 @@
+local languages = require("languages")
+
 return {
 	{
 		"nvim-treesitter/nvim-treesitter",
 		version = "*",
-		build = ":TSUpdate",
 		lazy = true,
 		event = "VeryLazy",
 		opts = {
-			highlight = {
-				enable = true,
-			},
+			highlight = { enable = true },
 			indent = { enable = true },
-			auto_install = true,
+			-- Parsers come from nix, via home/modules/nvim.nix.
+			auto_install = false,
+			ensure_installed = {},
 		},
+		config = function(_, opts)
+			require("nvim-treesitter.configs").setup(opts)
+
+			local missing = {}
+
+			for _, grammar in ipairs(languages.grammars) do
+				if #vim.api.nvim_get_runtime_file("parser/" .. grammar .. ".so", false) == 0 then
+					table.insert(missing, grammar)
+				end
+			end
+
+			if #missing > 0 then
+				table.sort(missing)
+				vim.schedule(
+					function()
+						vim.notify(
+							"Parsers missing from the nix runtime:\n" .. table.concat(missing, "\n"),
+							vim.log.levels.WARN,
+							{ title = "Treesitter" }
+						)
+					end
+				)
+			end
+		end,
 	},
 	{
 		"lukas-reineke/indent-blankline.nvim",

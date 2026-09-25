@@ -1,7 +1,10 @@
 { pkgs, ... }:
 {
-  home.packages = with pkgs; [
-    lua-language-server
-    stylua
-  ];
+  languages.lua = {
+    packages = with pkgs; [
+      lua-language-server
+      stylua
+    ];
+    servers = [ "lua_ls" ];
+  };
 }

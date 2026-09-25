@@ -1,9 +1,12 @@
 { pkgs, ... }:
 {
-  home.packages = with pkgs; [
-    black
-    mypy
-    pyright
-    ruff
-  ];
+  languages.python = {
+    packages = with pkgs; [
+      black
+      mypy
+      pyright
+      ruff
+    ];
+    servers = [ "pyright" "ruff" ];
+  };
 }
