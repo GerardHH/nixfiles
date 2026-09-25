@@ -144,7 +144,7 @@ return {
 	},
 	{
 		"rcarriga/nvim-dap-ui",
-		version = "*",
+		version = false,
 		dependencies = { "nvim-neotest/nvim-nio" },
 		lazy = true,
 		keys = {

@@ -281,7 +281,7 @@ return {
 	},
 	{
 		"kosayoda/nvim-lightbulb",
-		version = "*",
+		version = false,
 		lazy = true,
 		event = "LspAttach",
 		opts = {

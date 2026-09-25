@@ -2,7 +2,7 @@ return {
 	{
 		"akinsho/git-conflict.nvim",
 		main = "git-conflict",
-		version = "*",
+		version = false,
 		lazy = false,
 		keys = {
 			{ "<leader>gc0", "<Plug>(git-conflict-none)", desc = "Git Conflict choose none" },
