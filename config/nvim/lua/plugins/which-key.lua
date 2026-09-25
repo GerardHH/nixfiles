@@ -9,8 +9,7 @@ return {
 		vim.o.timeout = true
 		vim.o.timeoutlen = 1000
 	end,
-	lazy = true,
-	keys = "<leader>",
+	lazy = false,
 	opts = {
 		spec = {
 			{ "<leader>C", group = "Quickfix", mode = { "n", "o", "v", "x" } },
