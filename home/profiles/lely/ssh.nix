@@ -7,8 +7,8 @@
   # company secrets, but on this profile it is a mistake.
   assertions = [
     {
-      assertion = config.sops.secrets ? "ssh-lely-config";
-      message = "home/profiles/lely/ssh.nix Includes ~/.ssh/lely-config, but no sops secret 'ssh-lely-config' is declared in ./secrets.nix.";
+      assertion = config.sops.secrets ? "ssh-config-lely";
+      message = "home/profiles/lely/ssh.nix Includes ~/.ssh/config-lely, but no sops secret 'ssh-lely-config' is declared in ./secrets.nix.";
     }
   ];
 
@@ -20,6 +20,6 @@
   # mkBefore is order 500: after the escape hatch at 400, before the
   # personal Host blocks at 1000.
   my.ssh.config = lib.mkBefore ''
-    Include ~/.ssh/lely-config
+    Include ~/.ssh/config-lely
   '';
 }

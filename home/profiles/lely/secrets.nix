@@ -38,8 +38,8 @@ in
       "gitconfig-lely" = {
         sopsFile = "${lelySecretsDir}/secrets/git.yaml";
       };
-      # Named ssh-* so modules/ssh.nix links to it ~/.ssh/lely-config.
-      "ssh-lely-config" = {
+      # Named ssh-* so modules/ssh.nix links to it ~/.ssh/config-lely.
+      "ssh-config-lely" = {
         sopsFile = "${lelySecretsDir}/secrets/ssh.yaml";
       };
       # Individual fields so that they can be referenced individually.
