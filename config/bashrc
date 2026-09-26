@@ -46,6 +46,15 @@ export EDITOR="nvim"
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 export NAVI_PATH="$HOME/.config/navi/cheats"
 export PRE_COMMIT_HOME="${HOME}/.cache/pre-commit" # Force pre-commit to look at consolidated cache
+export SHELL="${SHELL:-${BASH:-/bin/bash}}"        # Export SHELL in case it didn't get set in container - fzf preview
+
+# Which nix-home-manager profile is active. Used by oh-my-posh for instance
+_nixfiles_profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/nixfiles/profile"
+if [ -r "$_nixfiles_profile_file" ]; then
+	read -r NIXFILES_PROFILE <"$_nixfiles_profile_file" || true
+	export NIXFILES_PROFILE
+fi
+unset _nixfiles_profile_file
 
 # Start up executions
 oh-my-posh disable notice

@@ -18,6 +18,19 @@ final_space = true
   newline = true
 
   [[blocks.segments]]
+    type = 'text'
+    style = 'plain'
+    background = 'transparent'
+    foreground_templates = [
+      '{{ if eq .Env.NIXFILES_PROFILE "container" }}cyan{{ end }}',
+      '{{ if ne .Env.NIXFILES_PROFILE "container" }grey{{ end }}',
+    ]
+    template = """{{ if .Env.NIXFILES_PROFILE }}{{ if eq .Env.NIXFILES_PROFILE "container" }}\uF21F{{ else }}\uF109{{ end }} {{ end }}"""
+
+      [blocks.segments.properties]
+        cache_duration = 'none'
+
+  [[blocks.segments]]
     template = '{{ .Path }}'
     foreground = 'blue'
     background = 'transparent'

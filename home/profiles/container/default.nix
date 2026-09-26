@@ -1,12 +1,21 @@
-{ ... }:
+{
+  config,
+  pkgs,
+  ...
+}:
 {
   imports = [
     ../../modules/base.nix
   ];
 
-  # Let Home Manager own the shell here: it writes ~/.bashrc and sources
-  # hm-session-vars.sh, so home.packages land on PATH for `devcontainer exec`.
-  programs.bash.enable = true;
+  # TERM arrives from the host shell: "alacritty", or "tmux-256color" inside
+  # tmux. The image carries only Ubuntu's ncurses-base terminfo, which has
+  # neither. Pull it in through the profile so that the image remains untouched.
+  home.packages = [ pkgs.ncurses ];
+  home.sessionVariables.TERMINFO = "${config.home.profileDirectory}/share/terminfo";
+
+  # Force TERM to be set so that nvim and friends can properly populate the terminal.
+  home.sessionVariables.TERM = "xterm-256color";
 
   # The image ships toolchains that have to match the project it was built for:
   # clangd's builtin headers and target must agree with the compiler behind

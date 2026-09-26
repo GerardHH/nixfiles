@@ -1,0 +1,27 @@
+{
+    "name": "nixfiles-lely-test",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+
+    "containerUser": "ubuntu",
+    "remoteUser": "ubuntu",
+
+    "runArgs": [
+        "--cap-add=SYS_PTRACE",
+        "--cap-add=NET_RAW",
+        "--cap-add=NET_BIND_SERVICE",
+        "--security-opt",
+        "seccomp=unconfined",
+        "--userns=keep-id",
+        "--network=host",
+        "--env=DISPLAY",
+        "--device=/dev/dri",
+        "--volume=/tmp/.X11-unix:/tmp/.X11-unix:rw",
+        "--volume=/etc/apt/auth.conf.d/artifactory.conf:/etc/apt/auth.conf.d/artifactory.conf",
+        "--mount=type=bind,src=${env:HOME}/.netrc,target=/root/.netrc,readonly",
+        "--mount=type=bind,src=${env:HOME}/.netrc,target=/home/ubuntu/.netrc,readonly",
+        "--mount=type=bind,src=${env:HOME}/.ssh,target=/home/ubuntu/.ssh,readonly",
+        "--mount=type=bind,src=${env:HOME}/.jfrog,target=/home/ubuntu/.jfrog"
+    ]
+}

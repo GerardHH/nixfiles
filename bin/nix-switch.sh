@@ -39,4 +39,4 @@ command -v nix >/dev/null || diagnose_missing_nix
 require_git_tracked "${NIXFILES_REPO_DIR}"
 hm_switch "${NIXFILES_REPO_DIR}" "${PROFILE}" "$@"
 
-is_container || write_profile "${PROFILE}"
+write_profile "${PROFILE}"

@@ -6,6 +6,7 @@
 {
   imports = [
     ./fonts.nix
+    ./git.nix
     ./languages
     ./nvim.nix
     ./shell.nix
