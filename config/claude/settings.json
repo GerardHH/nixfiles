@@ -4,6 +4,10 @@
         "allowUnsandboxedCommands": false,
         "failIfUnavailable": true,
         "filesystem": {
+            "allowWrite": [
+                "~/.cache/nix",
+                "~/.local/state/nix"
+            ],
             "denyRead": [
                 "/run/user/1000/secrets.d"
             ],
