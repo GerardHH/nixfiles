@@ -156,6 +156,11 @@ hm_switch() {
 
 	shift 2
 
+	if [[ -z "${USER:-}" ]]; then
+		USER="$(id --user --name)" || die "USER is unset and 'id --user --name' failed; home-manager cannot run."
+		export USER
+	fi
+
 	local profile_args=()
 	mapfile -t profile_args < <(profile_nix_args "${profile}")
 

@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 #
 # Build a dev-container if old or doesn't exist, found in '.devcontainer/devcontainer.json' and:
-# 1. Add the Nix feature.
+# 1. Mount /nix into the container.
 # 2. Download nixfiles from GitHub and run 'install.sh'.
 #
 # Then start it and drop into it with a shell.
 #
 #
 # Usage:
-#   nix-devcontainer.sh [workspace-folder]
+#   nix-devcontainer.sh [workspace-folder] [devcontainer-args...]
 #
 # Arguments:
-#   workspace-folder - directory holding .devcontainer/. Defaults to $PWD.
+#   workspace-folder  - directory holding .devcontainer/. Defaults to $PWD.
+#   devcontainer-args - remaining arguments forwarded to 'devcontainer up'
 #
 # Outputs:
 #   Writes progress to stdout and diagnostics to stderr.
@@ -28,24 +29,21 @@ if is_container; then
 	die "This is a host tool; it drives the dev container through podman."
 fi
 
-WORKSPACE="$(realpath -- "${1:-${PWD}}")"
+command -v devcontainer >/dev/null || die "devcontainer is not on PATH; is pkgs.devcontainer in home.packages?"
+command -v podman >/dev/null || die "podman missing: sudo apt install --yes podman"
 
-NIX_FEATURE='{
-  "ghcr.io/devcontainers/features/nix:1": {
-    "multiUser": false,
-    "extraNixConfig": "experimental-features = nix-command flakes,sandbox = false,build-dir = /nix/var/tmp"
-  }
-}'
+WORKSPACE="$(realpath -- "${1:-${PWD}}")"
 
 #shellcheck disable=SC2088
 devcontainer up \
-	--workspace-folder "${WORKSPACE}" \
 	--docker-path podman \
 	--dotfiles-repository https://github.com/GerardHH/nixfiles \
 	--dotfiles-target-path '~/nixfiles' \
-	--additional-features "${NIX_FEATURE}"
+	--mount "type=bind,source=/nix,target=/nix" \
+	--remove-existing-container \
+	--workspace-folder "${WORKSPACE}"
 
 devcontainer exec \
-	--workspace-folder "${WORKSPACE}" \
 	--docker-path podman \
+	--workspace-folder "${WORKSPACE}" \
 	bash

@@ -28,6 +28,12 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 command -v curl >/dev/null || die "curl missing: sudo apt install --yes curl"
 command -v git >/dev/null || die "git missing: sudo apt install --yes git"
 
+if is_container && ! nix_is_installed; then
+	die "No nix in this container, and installing it here cannot work.
+ /nix is supposed to be bind-mounted from the host, check that the mount landed:
+ podman inspect --format '{{range .Mounts}}{{.Source}}{{\"\\n\"}}{{end}}' <container>"
+fi
+
 PROFILE="$(resolve_profile "${1:-}")"
 require_profile "${NIXFILES_REPO_DIR}" "${PROFILE}"
 require_profile_prerequisites "${PROFILE}"
