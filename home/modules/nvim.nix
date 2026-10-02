@@ -9,6 +9,10 @@ let
   inherit (lib) attrValues concatMap filterAttrs;
   inherit (pkgs.vimPlugins.nvim-treesitter) grammarPlugins;
 
+  codelldb = pkgs.writeShellScriptBin "codelldb" ''
+    exec ${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb "$@"
+  '';
+
   enabled = filterAttrs (_: language: language.enable) config.languages;
   collect = attribute: lib.unique (concatMap (language: language.${attribute}) (attrValues enabled));
 
@@ -45,9 +49,27 @@ let
     '';
   };
 
+  # Only blink.cmp's build uses this, through $NVIM_NIX_RUNTIME/bin. It stays off
+  # PATH so it doesn't shadow a project's rustup toolchain, such as the one in
+  # the dev container image.
+  # TODO: Once nix manages nvim plugins, take blink.cmp from nixpkgs (or its own
+  # flake). That builds the fuzzy matcher in the derivation, so this can go.
+  rustToolchain = pkgs.buildEnv {
+    name = "nvim-nix-rust";
+    paths = [
+      pkgs.cargo
+      pkgs.rustc
+    ];
+    pathsToLink = [ "/bin" ];
+  };
+
   nvimRuntime = pkgs.symlinkJoin {
     name = "nvim-nix-runtime";
-    paths = [ manifest ] ++ map (grammar: grammarPlugins.${grammar}) wanted;
+    paths = [
+      manifest
+      rustToolchain
+    ]
+    ++ map (grammar: grammarPlugins.${grammar}) wanted;
   };
 in
 {
@@ -65,6 +87,7 @@ in
 
   home.packages = with pkgs; [
     neovim
+    codelldb
 
     fd # fzf-lua file provider
   ];
