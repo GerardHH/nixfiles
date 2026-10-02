@@ -54,6 +54,17 @@ return {
 			}
 			dap.configurations.c = { launch }
 			dap.configurations.cpp = { launch }
+
+			-- Glyphs from Hack Nerd Font, colours from catppuccin's dap integration.
+			for name, text in pairs({
+				DapBreakpoint = "\u{f188}", -- nf-fa-bug
+				DapBreakpointCondition = "\u{f059}", -- nf-fa-question_circle
+				DapBreakpointRejected = "\u{f05e}", -- nf-fa-ban
+				DapLogPoint = "\u{f075}", -- nf-fa-comment
+			}) do
+				vim.fn.sign_define(name, { text = text, texthl = name })
+			end
+			vim.fn.sign_define("DapStopped", { text = "\u{f061}", texthl = "DapStopped", linehl = "debugPC" }) -- nf-fa-arrow_right
 		end,
 	},
 	{
@@ -87,13 +98,21 @@ return {
 			"orjangj/neotest-ctest",
 		},
 		opts = function()
+			local ctest = require("neotest-ctest").setup({
+				dap_adapter = "codelldb",
+				frameworks = { "catch2", "gtest" },
+			})
+			-- A debug run launches the test binary without CTest, so there is no
+			-- result file to parse; reading it anyway raises an ENOENT error.
+			local ctest_results = ctest.results
+			ctest.results = function(spec, ...)
+				if spec.strategy and spec.strategy.request then return {} end
+				return ctest_results(spec, ...)
+			end
 			return {
 				adapters = {
 					require("rustaceanvim.neotest"),
-					require("neotest-ctest").setup({
-						dap_adapter = "codelldb",
-						frameworks = { "catch2", "gtest" },
-					}),
+					ctest,
 				},
 				floating = {
 					border = "rounded",

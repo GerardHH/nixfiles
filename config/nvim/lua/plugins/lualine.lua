@@ -14,6 +14,26 @@ return {
 			return ""
 		end
 
+		local palette = require("catppuccin.palettes.mocha")
+		local panels = {
+			filetypes = {
+				"dap-repl",
+				"dapui_breakpoints",
+				"dapui_console",
+				"dapui_scopes",
+				"dapui_stacks",
+				"dapui_watches",
+				"neotest-output-panel",
+				"neotest-summary",
+			},
+			sections = {
+				lualine_c = { { "filename", file_status = false, color = { fg = palette.sky } } },
+			},
+			inactive_sections = {
+				lualine_c = { { "filename", file_status = false } },
+			},
+		}
+
 		lualine.setup({
 			options = {
 				theme = "auto",
@@ -22,7 +42,7 @@ return {
 				lualine_x = {
 					{
 						yazi_shell,
-						color = { fg = require("catppuccin.palettes.mocha").blue },
+						color = { fg = palette.blue },
 					},
 					{
 						lazy_status.updates,
@@ -34,6 +54,7 @@ return {
 					{ "filetype" },
 				},
 			},
+			extensions = { panels },
 		})
 	end,
 }
