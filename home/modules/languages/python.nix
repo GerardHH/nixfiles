@@ -7,6 +7,9 @@
       pyright
       ruff
     ];
-    servers = [ "pyright" "ruff" ];
+    servers = [
+      "pyright"
+      "ruff"
+    ];
   };
 }
