@@ -65,7 +65,6 @@ return {
 	-- LSP
 	{
 		"neovim/nvim-lspconfig",
-		version = "*",
 		dependencies = {
 			"saghen/blink.cmp",
 			"SmiteshP/nvim-navic",
@@ -138,7 +137,6 @@ return {
 	},
 	{
 		"mrcjkb/rustaceanvim",
-		version = "*",
 		lazy = true,
 		ft = "rust",
 		config = function()
@@ -169,7 +167,6 @@ return {
 	-- Linting & Formatting
 	{
 		"nvimtools/none-ls.nvim",
-		version = "*",
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 		},
@@ -227,7 +224,6 @@ return {
 	-- Others
 	{
 		"utilyre/barbecue.nvim",
-		version = "*",
 		dependencies = {
 			"SmiteshP/nvim-navic",
 			"nvim-tree/nvim-web-devicons",
@@ -240,7 +236,6 @@ return {
 	},
 	{
 		"rmagatti/goto-preview",
-		version = "*",
 		lazy = true,
 		keys = {
 			{
@@ -258,7 +253,6 @@ return {
 	},
 	{
 		"smjonas/inc-rename.nvim",
-		version = "*",
 		lazy = true,
 		keys = {
 			{

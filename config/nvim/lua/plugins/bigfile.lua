@@ -1,7 +1,6 @@
 return {
 	enabled = false, -- breaks log file highlighting
 	"LunarVim/bigfile.nvim",
-	version = "*",
 	lazy = true,
 	event = "BufReadPre",
 	opts = {

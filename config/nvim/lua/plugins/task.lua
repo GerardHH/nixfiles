@@ -1,6 +1,5 @@
 return {
 	"stevearc/overseer.nvim",
-	version = "*",
 	lazy = true,
 	keys = {
 		{ "<leader>rt", "<CMD>OverseerRun<CR>", desc = "Run task" },

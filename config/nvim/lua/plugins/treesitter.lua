@@ -3,7 +3,6 @@ local languages = require("languages")
 return {
 	{
 		"nvim-treesitter/nvim-treesitter",
-		version = "*",
 		lazy = true,
 		event = "VeryLazy",
 		opts = {
@@ -41,7 +40,6 @@ return {
 	{
 		"lukas-reineke/indent-blankline.nvim",
 		main = "ibl",
-		version = "*",
 		dependencies = {
 			"nvim-treesitter/nvim-treesitter",
 		},
@@ -64,7 +62,6 @@ return {
 	},
 	{
 		"https://github.com/nvim-treesitter/nvim-treesitter-textobjects",
-		version = "*",
 		dependencies = {
 			"nvim-treesitter/nvim-treesitter",
 		},

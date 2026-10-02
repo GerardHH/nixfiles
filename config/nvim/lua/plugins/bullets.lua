@@ -1,6 +1,5 @@
 return {
 	"dkarter/bullets.vim",
-	version = "*",
 	lazy = true,
 	ft = {
 		"markdown",

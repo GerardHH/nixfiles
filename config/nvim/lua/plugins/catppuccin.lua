@@ -1,7 +1,6 @@
 return {
 	{
 		"catppuccin/nvim",
-		version = "*",
 		name = "catppuccin",
 		priority = 1000, -- make sure to load this before all the other start plugins
 		opts = {
@@ -17,7 +16,6 @@ return {
 				indent_blankline = { enabled = true, colored_indent_levels = true, scope_color = "lavender" },
 				lsp_saga = true,
 				lsp_trouble = true,
-				mason = true,
 				native_lsp = {
 					enabled = true,
 					virtual_text = {

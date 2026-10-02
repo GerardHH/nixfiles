@@ -1,6 +1,5 @@
 return {
 	"azabiong/vim-highlighter",
-	version = "*",
 	lazy = true,
 	keys = {
 		{ "<leader>h+", "<CMD>Hi +<CR>", desc = "Highlight set" },

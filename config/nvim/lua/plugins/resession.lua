@@ -1,7 +1,6 @@
 return {
 	"stevearc/resession.nvim",
 	main = "resession",
-	version = "*",
 	lazy = false,
 	opts = {
 		autosave = {

@@ -1,7 +1,6 @@
 return {
 	"chrisgrieser/nvim-recorder",
 	main = "recorder",
-	version = "*",
 	dependencies = { "rcarriga/nvim-notify" },
 	lazy = true,
 	keys = {

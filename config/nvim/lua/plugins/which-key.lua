@@ -1,7 +1,6 @@
 return {
 	"folke/which-key.nvim",
 	main = "which-key",
-	version = "*",
 	dependencies = {
 		"nvim-tree/nvim-web-devicons",
 	},

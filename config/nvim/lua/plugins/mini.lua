@@ -1,7 +1,6 @@
 return {
 	{
 		"echasnovski/mini.bufremove",
-		version = "*",
 		lazy = true,
 		keys = {
 			{ "<leader>q", function() require("mini.bufremove").delete(0) end, desc = "Quit buffer (mini.bufremove)" },
@@ -9,7 +8,6 @@ return {
 	},
 	{
 		"echasnovski/mini.files",
-		version = "*",
 		lazy = true,
 		keys = {
 			{
@@ -30,7 +28,6 @@ return {
 	},
 	{
 		"echasnovski/mini.move",
-		version = "*",
 		lazy = true,
 		keys = {
 			{ "<M-h>", mode = { "n", "x" }, desc = "Indent line/selection left (mini.move)" },
@@ -42,7 +39,6 @@ return {
 	},
 	{
 		"echasnovski/mini.operators",
-		version = "*",
 		lazy = true,
 		keys = {
 			{ "<leader>or", mode = { "v", "x" }, desc = "Replace with register (mini.operators)" },
@@ -68,7 +64,6 @@ return {
 	},
 	{
 		"echasnovski/mini.pairs",
-		version = "*",
 		lazy = true,
 		keys = {
 			{ "(", mode = "i", desc = "Auto close pair (mini.pairs)" },
@@ -85,7 +80,6 @@ return {
 	},
 	{
 		"echasnovski/mini.splitjoin",
-		version = "*",
 		lazy = true,
 		keys = {
 			{ "<leader>~", desc = "Split/Join arguments (mini.splitjoin)" },
@@ -99,7 +93,6 @@ return {
 	{
 		"echasnovski/mini.trailspace",
 		main = "mini.trailspace",
-		version = "*",
 		lazy = true,
 		event = { "BufReadPre", "BufNewFile" },
 		opts = {},

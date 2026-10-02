@@ -1,6 +1,5 @@
 return {
 	"nguyenvukhang/nvim-toggler",
-	version = "*",
 	lazy = true,
 	keys = {
 		{
