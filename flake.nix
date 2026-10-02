@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -24,6 +25,7 @@
   outputs =
     {
       nixpkgs,
+      nixpkgs-unstable,
       home-manager,
       fzf-tab-completion,
       nixgl,
@@ -32,15 +34,23 @@
     }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs {
+
+      unstable = import nixpkgs-unstable {
         inherit system;
         # Only allow specific proprietary packages
         config.allowUnfreePredicate =
           pkg:
-          builtins.elem (nixpkgs.lib.getName pkg) [
+          builtins.elem (nixpkgs-unstable.lib.getName pkg) [
             "claude-code"
           ];
-        overlays = [ nixgl.overlays.default ];
+      };
+
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [
+          nixgl.overlays.default
+          (_final: _prev: { inherit (unstable) claude-code; })
+        ];
       };
 
       mkHome =

@@ -1,48 +1,53 @@
 {
-    "sandbox": {
-        "enabled": true,
-        "allowUnsandboxedCommands": false,
-        "failIfUnavailable": true,
-        "filesystem": {
-            "allowWrite": [
-                "~/.cache/nix",
-                "~/.local/state/nix"
-            ],
-            "denyRead": [
-                "/run/user/1000/secrets.d"
-            ],
-            "denyWrite": [
-                "~",
-                "~/nixfiles"
-            ]
-        },
-        "network": {
-            "allowedDomains": [
-                "cache.nixos.org",
-                "channels.nixos.org",
-                "github.com",
-                "api.github.com",
-                "codeload.github.com",
-                "objects.githubusercontent.com",
-                "raw.githubusercontent.com"
-            ],
-            "strictAllowlist": true
-        }
+  "permissions": {
+    "deny": [
+      "Read(~/.ssh/**)",
+      "Read(//**/.env)",
+      "Edit(//**)",
+      "Bash(sudo:*)",
+      "Read(~/git/lely/**)",
+      "Read(~/.config/sops/age/**)",
+      "Read(~/.config/sops-nix/**)",
+      "Read(//**/secrets.d/**)",
+      "Read(~/.netrc)",
+      "Read(~/.jfrog)"
+    ],
+    "defaultMode": "auto"
+  },
+  "model": "opus",
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowedDomains": [
+        "cache.nixos.org",
+        "channels.nixos.org",
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "objects.githubusercontent.com",
+        "raw.githubusercontent.com"
+      ],
+      "strictAllowlist": true
     },
-    "permissions": {
-        "defaultMode": "auto",
-        "deny": [
-            "Read(~/.ssh/**)",
-            "Read(//**/.env)",
-            "Edit(//**)",
-            "Bash(sudo:*)",
-            "Read(~/git/lely/**)",
-            "Read(~/.config/sops/age/**)",
-            "Read(~/.config/sops-nix/**)",
-            "Read(//**/secrets.d/**)",
-            "Read(~/.netrc)",
-            "Read(~/.jfrog)"
-        ]
-    },
-    "model": "opus"
+    "filesystem": {
+      "allowWrite": [
+        "~/.cache/nix",
+        "~/.local/state/nix"
+      ],
+      "denyWrite": [
+        "~",
+        "~/nixfiles"
+      ],
+      "denyRead": [
+        "/run/user/1000/secrets.d"
+      ]
+    }
+  },
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  }
 }
