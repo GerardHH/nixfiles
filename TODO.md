@@ -19,58 +19,41 @@ Delete an item when it's done; git history keeps it.
 
 ### 2026-10-03 · neotest in a container with colcon/ROS 2
 
-Background:
+neotest and nvim-dap for the work setup, through
+`config/nvim/local-plugins/neotest-testmate/`: an adapter that runs test
+executables directly, like VSCode's C++ TestMate, instead of through CTest.
+Test bed: `dev-container-tests/colcon-catch2/`. Keep work project details
+out of this repo; facts only.
 
-- **Host (personal profile):** neotest and nvim-dap work for
-  `dev-container-tests/cmake-catch2` (CMake, Catch2 v3). codelldb comes from
-  nix (`home/modules/nvim.nix`); mason is gone.
-- **`config/nvim/local-plugins/neotest-testmate/`:** a local lazy.nvim plugin,
-  loaded through `dir = …` in `config/nvim/lua/plugins/dap.lua`, with
-  neotest-ctest as its dependency. It is a neotest adapter that runs C++ test
-  executables directly, the way VSCode's C++ TestMate does, instead of
-  through CTest:
-    - test cases in the source come from neotest-ctest's tree-sitter queries;
-    - the executable is the newest one named `*test*` under the project's
-      `build`/`out` directories (TestMate's defaults) that contains the
-      source file's path, which the test macros embed through `__FILE__`
-      (searched with `rg`);
-    - it runs `<exe> "name1,name2" --reporter xml --out <tmp>` and turns the
-      XML into results, diagnostics and an output-panel summary; debugging
-      launches the same command under codelldb;
-    - Catch2 v2 and v3 only, no GTest yet. No hard-coded paths.
-- **`dev-container-tests/colcon-catch2/`:** test bed that mirrors the work
-  setup. Two colcon packages with Catch2 v2.13.10 (FetchContent), one
-  `<pkg>_test` executable per package, registered with CTest as a single
-  test. Has a `.devcontainer/` (Ubuntu 24.04 with build tools, clangd, colcon,
-  python3-colcon-cmake, python3-colcon-recursive-crawl).
-    - Start: `bin/nix-devcontainer.sh dev-container-tests/colcon-catch2`
-    - Inside: `colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug`
-- **Work setup** (facts only; keep project details out of this repo): colcon
-  build base `build/unittest/build`; test executable
-  `build/unittest/build/<pkg>/<pkg>_test`; CTest knows one test per package
-  (plain `add_test`); mostly Catch2 v2, some GTest; VSCode TestMate uses
-  `envFile: /tmp/ros.env`; clangd uses
-  `--compile-commands-dir=build/unittest/build`.
-
-Steps:
-
-1. **Verify in the colcon container.** The rustaceanvim error is fixed
-   (commit 8b0fc12). Check `<leader>ts`, `tf`, `tt`, `tp` and `td` in both
-   packages.
-2. **Check at work (read-only)** that the executable lookup works there. From
-   the project root, this should print the executable:
+1. **Verify in the colcon container.** Start it with
+   `bin/nix-devcontainer.sh dev-container-tests/colcon-catch2`, build inside
+   with `colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug`, then check
+   `<leader>ts`, `tf`, `tt`, `tp` and `td` in both packages. For comparison,
+   all of these work on the host with `dev-container-tests/cmake-catch2`.
+2. **Check at work (read-only)** that the executable lookup works there. The
+   adapter picks the newest `*test*` executable under `build`/`out` that
+   contains the test source's path, which the test macros embed through
+   `__FILE__`. At work the executable is
+   `build/unittest/build/<pkg>/<pkg>_test`. From the project root, this
+   should print it:
    `rg --files-with-matches --text --fixed-strings "$PWD/<path to a test .cpp>" build/unittest/build/<pkg>/<pkg>_test`
    If it doesn't, the build rewrites `__FILE__` (`-ffile-prefix-map`). Also
-   check that test files include `<catch2/catch.hpp>`.
+   check that test files include `<catch2/catch.hpp>` (Catch2 v2).
 3. **Project-specific settings, without paths in the dotfiles:** the env file
    for test runs (neotest spec `env` and codelldb launch `env`) and clangd's
-   compile-commands directory. Open decision: a project-local `.nvim.lua`
-   (nvim's `exrc`, with trust prompt) or reading `.vscode/settings.json`
-   directly (TestMate `envFile`, `clangd.arguments`). Add a sample test that
-   only passes with a variable from the env file.
-4. **GTest/GMock in neotest-testmate:** `--gtest_filter=Suite.Name:…`,
-   `--gtest_output=xml:<file>`, parse GTest's XML. neotest-ctest has GTest
-   queries. Add a GTest package to the sample workspace.
+   compile-commands directory. At work, TestMate uses
+   `envFile: /tmp/ros.env` and clangd uses
+   `--compile-commands-dir=build/unittest/build`. Open decision: a
+   project-local `.nvim.lua` (nvim's `exrc`, with trust prompt) or reading
+   `.vscode/settings.json` directly (TestMate `envFile`, `clangd.arguments`).
+   Add a sample test to the test bed that only passes with a variable from
+   the env file.
+4. **GTest/GMock in neotest-testmate:** some work packages use GTest; the
+   adapter handles only Catch2 v2 and v3. Catch2 runs as
+   `<exe> "name1,name2" --reporter xml --out <tmp>`; for GTest that becomes
+   `--gtest_filter=Suite.Name:…` and `--gtest_output=xml:<file>`, plus
+   parsing GTest's XML. neotest-ctest has GTest queries. Add a GTest package
+   to the test bed.
 
 ## Next
 
@@ -121,13 +104,23 @@ in nvim.
 After an update, `@` file completion no longer pre-selects the first match.
 Find out whether a setting restores it, or report it with `/feedback`.
 
-### 2026-10-03 · Copilot CLI in the container
+### 2026-10-03 · Container bash history across rebuilds
 
-Needed for work; Claude Code covers it for now. Open question: deliver the
-token through `nixfiles-secrets` (sops) so a container rebuild costs
-nothing. Likely shape: a token on the host from sops, passed in by
-`bin/nix-devcontainer.sh` as an environment variable or bind-mounted file,
-the same mechanism as the per-workspace bash history (Later).
+Move `HISTFILE` to `${XDG_STATE_HOME:-$HOME/.local/state}/bash/history`
+(create the directory, and move the host's `~/.bash_history` there once), and
+let `bin/nix-devcontainer.sh` bind-mount
+`~/.local/state/nix-devcontainer/<workspace>/bash` onto the container's
+`~/.local/state/bash`. Histories stay separate: the host, and one per
+workspace. Consider `PROMPT_COMMAND+=('history -a')` so commands are saved
+immediately.
+
+### 2026-10-03 · fzf bash completion after any command
+
+`**<Tab>` only triggers for commands it knows, e.g. not after
+`tmux source-file`. Goal: path completion after any command, and bash
+completion for tmux.
+
+## Later
 
 ### 2026-10-03 · nvim statusline at the top
 
@@ -146,30 +139,13 @@ tmux: lualine as `tabline`/`winbar`, `laststatus=0`, `cmdheight=0`.
 - quicker.nvim: editable, nicer quickfix list.
 - nvim-chainsaw: insert and remove log statements.
 
-## Later
+### 2026-10-03 · Copilot CLI in the container
 
-### 2026-10-03 · Register each test case with CTest (for the team)
-
-`catch_discover_tests` / `gtest_discover_tests` gives per-test results in
-ctest/colcon/CI, crash isolation, `--rerun-failed` and `-j`. Catch2 v2 can
-only discover at build time, so the executable must start during
-`colcon build`.
-
-### 2026-10-03 · fzf bash completion after any command
-
-`**<Tab>` only triggers for commands it knows, e.g. not after
-`tmux source-file`. Goal: path completion after any command, and bash
-completion for tmux.
-
-### 2026-10-03 · Container bash history across rebuilds
-
-Move `HISTFILE` to `${XDG_STATE_HOME:-$HOME/.local/state}/bash/history`
-(create the directory, and move the host's `~/.bash_history` there once), and
-let `bin/nix-devcontainer.sh` bind-mount
-`~/.local/state/nix-devcontainer/<workspace>/bash` onto the container's
-`~/.local/state/bash`. Histories stay separate: the host, and one per
-workspace. Consider `PROMPT_COMMAND+=('history -a')` so commands are saved
-immediately.
+Needed for work; Claude Code covers it for now. Open question: deliver the
+token through `nixfiles-secrets` (sops) so a container rebuild costs
+nothing. Likely shape: a token on the host from sops, passed in by
+`bin/nix-devcontainer.sh` as an environment variable or bind-mounted file,
+the same mechanism as the "Container bash history" item.
 
 ### 2026-10-03 · nvim plugins through nix
 
@@ -191,5 +167,13 @@ after moving to NixOS, maybe not.
 
 - TUIOS: window manager inside the terminal.
 - superfile: file manager; compare with yazi, which is in use now.
+
+### 2026-10-03 · Register each test case with CTest (for the team)
+
+`catch_discover_tests` / `gtest_discover_tests` gives per-test results in
+ctest/colcon/CI, crash isolation, `--rerun-failed` and `-j`. At work, CTest
+now knows one test per package (plain `add_test`). Catch2 v2 can
+only discover at build time, so the executable must start during
+`colcon build`.
 
 ## Stale
