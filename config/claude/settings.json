@@ -3,7 +3,7 @@
     "deny": [
       "Read(~/.ssh/**)",
       "Read(//**/.env)",
-      "Edit(//**)",
+      "Edit(~/**)",
       "Bash(sudo:*)",
       "Read(~/git/lely/**)",
       "Read(~/.config/sops/age/**)",
@@ -11,6 +11,9 @@
       "Read(//**/secrets.d/**)",
       "Read(~/.netrc)",
       "Read(~/.jfrog)"
+    ],
+    "allow": [
+        "Edit(//tmp/claude-1000/**)"
     ],
     "defaultMode": "auto"
   },
