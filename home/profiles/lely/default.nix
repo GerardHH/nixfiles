@@ -1,9 +1,9 @@
 { ... }:
 {
-  imports = [
-    ../personal
-    ./artifactory.nix
-    ./secrets.nix
-    ./ssh.nix
-  ];
+    imports = [
+        ../personal
+        ./artifactory.nix
+        ./secrets.nix
+        ./ssh.nix
+    ];
 }

@@ -40,10 +40,10 @@ command -v jf >/dev/null || die "jf is not on PATH; is jfrog-cli in home.package
 # just ends up without Artifactory credentials; preflight.sh is what insists
 # on the secrets checkout for this profile.
 for secret_file in "${MACHINE_FILE}" "${USERNAME_FILE}" "${PASSWORD_FILE}"; do
-	if [[ ! -r ${secret_file} ]]; then
-		warn "no decrypted secret at ${secret_file}, leaving ~/.jfrog alone"
-		exit 0
-	fi
+    if [[ ! -r ${secret_file} ]]; then
+        warn "no decrypted secret at ${secret_file}, leaving ~/.jfrog alone"
+        exit 0
+    fi
 done
 
 # --password-stdin keeps the credential out of the process table.
@@ -54,13 +54,13 @@ done
 # refreshing access token, which fails whenever activation happens off VPN.
 log "Configuring jf server '${SERVER_ID}'"
 jf config add "${SERVER_ID}" \
-	--url="https://$(cat "${MACHINE_FILE}")" \
-	--user="$(cat "${USERNAME_FILE}")" \
-	--password-stdin \
-	--basic-auth-only \
-	--enc-password=false \
-	--interactive=false \
-	--overwrite \
-	<"${PASSWORD_FILE}"
+    --url="https://$(cat "${MACHINE_FILE}")" \
+    --user="$(cat "${USERNAME_FILE}")" \
+    --password-stdin \
+    --basic-auth-only \
+    --enc-password=false \
+    --interactive=false \
+    --overwrite \
+    <"${PASSWORD_FILE}"
 
 jf config use "${SERVER_ID}"

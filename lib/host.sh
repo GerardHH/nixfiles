@@ -27,9 +27,9 @@ NIXFILES_BWRAP_PROFILE_DST="/etc/apparmor.d/bwrap"
 # Returns:
 #   0 when the restriction is active, 1 otherwise.
 apparmor_restricts_userns() {
-	local sysctl="/proc/sys/kernel/apparmor_restrict_unprivileged_userns"
-	[[ -r ${sysctl} ]] || return 1
-	[[ "$(cat -- "${sysctl}")" == "1" ]]
+    local sysctl="/proc/sys/kernel/apparmor_restrict_unprivileged_userns"
+    [[ -r ${sysctl} ]] || return 1
+    [[ "$(cat -- "${sysctl}")" == "1" ]]
 }
 
 # Every bwrap an agent CLI might exec: Ubuntu's, plus whatever bubblewrap Nix
@@ -39,13 +39,13 @@ apparmor_restricts_userns() {
 # Outputs:
 #   Writes one executable path per line to stdout.
 bwrap_paths() {
-	local path
-	for path in "${NIXFILES_BWRAP_PATH}" /nix/store/*-bubblewrap-*/bin/bwrap; do
-		if [[ -x ${path} ]]; then
-			printf '%s\n' "${path}"
-		fi
-	done
-	return 0
+    local path
+    for path in "${NIXFILES_BWRAP_PATH}" /nix/store/*-bubblewrap-*/bin/bwrap; do
+        if [[ -x ${path} ]]; then
+            printf '%s\n' "${path}"
+        fi
+    done
+    return 0
 }
 
 # Reports whether bwrap can build the sandbox an agent CLI needs.
@@ -61,13 +61,13 @@ bwrap_paths() {
 # Returns:
 #   0 when a full sandbox can be created, 1 otherwise.
 bwrap_sandbox_works() {
-	local path found=0
-	while IFS= read -r path; do
-		found=1
-		"${path}" --unshare-all --ro-bind / / --dev /dev -- true >/dev/null 2>&1 ||
-			return 1
-	done < <(bwrap_paths)
-	((found > 0))
+    local path found=0
+    while IFS= read -r path; do
+        found=1
+        "${path}" --unshare-all --ro-bind / / --dev /dev -- true >/dev/null 2>&1 ||
+            return 1
+    done < <(bwrap_paths)
+    ((found > 0))
 }
 
 # Explains why bwrap cannot sandbox and how to fix it.
@@ -78,8 +78,8 @@ bwrap_sandbox_works() {
 # Outputs:
 #   Writes the explanation to stderr.
 warn_missing_bwrap_profile() {
-	warn "${1}"
-	cat >&2 <<EOF
+    warn "${1}"
+    cat >&2 <<EOF
 
   Agent CLIs sandbox their shell commands with bwrap. Ubuntu 24.04 sets
   kernel.apparmor_restrict_unprivileged_userns=1, and a binary with no
@@ -112,15 +112,15 @@ EOF
 # Returns:
 #   0 when bwrap is installed and/or pressent; otherwise calls die and does not return.
 require_ubuntu_bubblewrap() {
-	if [[ -x ${NIXFILES_BWRAP_PATH} ]]; then
-		return 0
-	fi
+    if [[ -x ${NIXFILES_BWRAP_PATH} ]]; then
+        return 0
+    fi
 
-	log "Installing bubblewrap from apt"
-	sudo apt-get install --yes bubblewrap
+    log "Installing bubblewrap from apt"
+    sudo apt-get install --yes bubblewrap
 
-	[[ -x ${NIXFILES_BWRAP_PATH} ]] ||
-		die "apt installed bubblewrap but ${NIXFILES_BWRAP_PATH} is still missing."
+    [[ -x ${NIXFILES_BWRAP_PATH} ]] ||
+        die "apt installed bubblewrap but ${NIXFILES_BWRAP_PATH} is still missing."
 }
 
 # Installs the bwrap AppArmor profile and loads it.
@@ -131,32 +131,32 @@ require_ubuntu_bubblewrap() {
 # Returns:
 #   0 when bwrap can sandbox afterwards; otherwise calls die and does not return.
 apply_bwrap_profile() {
-	if ! apparmor_restricts_userns; then
-		log "AppArmor does not restrict user namespaces here; nothing to apply."
-		return 0
-	fi
+    if ! apparmor_restricts_userns; then
+        log "AppArmor does not restrict user namespaces here; nothing to apply."
+        return 0
+    fi
 
-	if bwrap_sandbox_works; then
-		log "bwrap already sandboxes; the profile is in place."
-		return 0
-	fi
+    if bwrap_sandbox_works; then
+        log "bwrap already sandboxes; the profile is in place."
+        return 0
+    fi
 
-	require_ubuntu_bubblewrap
+    require_ubuntu_bubblewrap
 
-	[[ -r ${NIXFILES_BWRAP_PROFILE_SRC} ]] ||
-		die "No profile to install at ${NIXFILES_BWRAP_PROFILE_SRC}."
+    [[ -r ${NIXFILES_BWRAP_PROFILE_SRC} ]] ||
+        die "No profile to install at ${NIXFILES_BWRAP_PROFILE_SRC}."
 
-	log "Installing ${NIXFILES_BWRAP_PROFILE_DST}"
-	sudo install --mode=644 --owner=root --group=root \
-		-- "${NIXFILES_BWRAP_PROFILE_SRC}" "${NIXFILES_BWRAP_PROFILE_DST}"
+    log "Installing ${NIXFILES_BWRAP_PROFILE_DST}"
+    sudo install --mode=644 --owner=root --group=root \
+        -- "${NIXFILES_BWRAP_PROFILE_SRC}" "${NIXFILES_BWRAP_PROFILE_DST}"
 
-	log "Loading the profile"
-	sudo apparmor_parser --replace --write-cache "${NIXFILES_BWRAP_PROFILE_DST}"
+    log "Loading the profile"
+    sudo apparmor_parser --replace --write-cache "${NIXFILES_BWRAP_PROFILE_DST}"
 
-	bwrap_sandbox_works ||
-		die "bwrap still cannot sandbox. Look for DENIED lines in: sudo dmesg | grep apparmor"
+    bwrap_sandbox_works ||
+        die "bwrap still cannot sandbox. Look for DENIED lines in: sudo dmesg | grep apparmor"
 
-	log "bwrap sandbox works."
+    log "bwrap sandbox works."
 }
 
 # Reports whether the bwrap fix is in place, explaining when it is not.
@@ -167,25 +167,25 @@ apply_bwrap_profile() {
 # Returns:
 #   0 when nothing is wrong, 1 when the fix is missing.
 bwrap_fix_ok() {
-	apparmor_restricts_userns || return 0
+    apparmor_restricts_userns || return 0
 
-	if [[ ! -x ${NIXFILES_BWRAP_PATH} ]]; then
-		warn_missing_bwrap_profile "${NIXFILES_BWRAP_PATH} is not installed, so agent CLIs cannot sandbox."
-		return 1
-	fi
+    if [[ ! -x ${NIXFILES_BWRAP_PATH} ]]; then
+        warn_missing_bwrap_profile "${NIXFILES_BWRAP_PATH} is not installed, so agent CLIs cannot sandbox."
+        return 1
+    fi
 
-	local resolved
-	resolved="$(command -v bwrap || true)"
-	if [[ -n ${resolved} && ${resolved} != "${NIXFILES_BWRAP_PATH}" ]]; then
-		warn "bwrap on PATH resolves to ${resolved}, but the profile covers ${NIXFILES_BWRAP_PATH}."
-	fi
+    local resolved
+    resolved="$(command -v bwrap || true)"
+    if [[ -n ${resolved} && ${resolved} != "${NIXFILES_BWRAP_PATH}" ]]; then
+        warn "bwrap on PATH resolves to ${resolved}, but the profile covers ${NIXFILES_BWRAP_PATH}."
+    fi
 
-	if ! bwrap_sandbox_works; then
-		warn_missing_bwrap_profile "bwrap cannot create a sandbox, so agent CLIs will fail every command."
-		return 1
-	fi
+    if ! bwrap_sandbox_works; then
+        warn_missing_bwrap_profile "bwrap cannot create a sandbox, so agent CLIs will fail every command."
+        return 1
+    fi
 
-	return 0
+    return 0
 }
 
 # Warns when the bwrap fix is missing, without failing the activation.
@@ -197,7 +197,7 @@ bwrap_fix_ok() {
 # Returns:
 #   Always 0.
 check_bwrap_sandbox() {
-	bwrap_fix_ok || true
+    bwrap_fix_ok || true
 }
 
 # Reports the state of every host fix.
@@ -206,13 +206,13 @@ check_bwrap_sandbox() {
 # Returns:
 #   0 when every fix is in place, 1 otherwise.
 check_host_fixes() {
-	local failed=0
+    local failed=0
 
-	bwrap_fix_ok || failed=1
+    bwrap_fix_ok || failed=1
 
-	if ((failed > 0)); then
-		return 1
-	fi
+    if ((failed > 0)); then
+        return 1
+    fi
 
-	log "All host fixes are in place."
+    log "All host fixes are in place."
 }

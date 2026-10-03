@@ -25,11 +25,11 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/paths.sh"
 # Returns:
 #   Does not return; exits 1.
 die_missing_secrets_checkout() {
-	local checkout="${1}"
-	shift
-	printf '\033[1;31merror:\033[0m secrets checkout at %s is missing %d file(s)\n\n' "${checkout}" "$#" >&2
-	printf '    %s\n' "$@" >&2
-	cat >&2 <<EOF
+    local checkout="${1}"
+    shift
+    printf '\033[1;31merror:\033[0m secrets checkout at %s is missing %d file(s)\n\n' "${checkout}" "$#" >&2
+    printf '    %s\n' "$@" >&2
+    cat >&2 <<EOF
 
   This profile reads its secrets from a checkout, so the material never
   lands in this public flake. Nothing here can fetch it for you: the
@@ -47,7 +47,7 @@ die_missing_secrets_checkout() {
 
   Already cloned? Then it is out of date, or on the wrong branch.
 EOF
-	exit 1
+    exit 1
 }
 
 # Explains how to restore a missing SSH key and terminates.
@@ -57,8 +57,8 @@ EOF
 # Returns:
 #   Does not return; exits 1.
 die_missing_ssh_key() {
-	printf '\033[1;31merror:\033[0m no SSH key at %s\n\n' "${1}" >&2
-	cat >&2 <<EOF
+    printf '\033[1;31merror:\033[0m no SSH key at %s\n\n' "${1}" >&2
+    cat >&2 <<EOF
   This key is deliberately not managed by Nix: it is what fetches the
   secrets, so nothing declarative can bootstrap it. Place it by hand,
   once per machine:
@@ -67,7 +67,7 @@ die_missing_ssh_key() {
 
   ${2}
 EOF
-	exit 1
+    exit 1
 }
 
 # Derives the public half of an SSH key and writes besides it as <key>.pub.
@@ -79,28 +79,28 @@ EOF
 # Returns:
 #   0 when the .pub is present and current; otherwise calls die.
 derive_ssh_public_key() {
-	local key_path
-	key_path="${1:-}"
-	[[ -n "${key_path}" ]] || die "derive_ssh_public_key: 'key path' may not be empty"
+    local key_path
+    key_path="${1:-}"
+    [[ -n "${key_path}" ]] || die "derive_ssh_public_key: 'key path' may not be empty"
 
-	if ! command -v ssh-keygen >/dev/null 2>&1; then
-		warn "ssh-keygen not on PATH; skipped deriving ${key_path}.pub."
-		return 0
-	fi
+    if ! command -v ssh-keygen >/dev/null 2>&1; then
+        warn "ssh-keygen not on PATH; skipped deriving ${key_path}.pub."
+        return 0
+    fi
 
-	local derived
-	# </dev/null so an encrypted key fails instead of prompting.
-	derived="$(ssh-keygen -y -f "${key_path}" </dev/null)" ||
-		die "Could not derive a public key from ${key_path}."
+    local derived
+    # </dev/null so an encrypted key fails instead of prompting.
+    derived="$(ssh-keygen -y -f "${key_path}" </dev/null)" ||
+        die "Could not derive a public key from ${key_path}."
 
-	local pub_path="${key_path}.pub"
-	if [[ -r ${pub_path} ]] && [[ "$(cat -- "${pub_path}")" == "${derived}" ]]; then
-		return 0
-	fi
+    local pub_path="${key_path}.pub"
+    if [[ -r ${pub_path} ]] && [[ "$(cat -- "${pub_path}")" == "${derived}" ]]; then
+        return 0
+    fi
 
-	install --mode=644 /dev/null "${pub_path}"
-	printf '%s\n' "${derived}" >"${pub_path}"
-	log "Derived ${pub_path} from ${key_path}"
+    install --mode=644 /dev/null "${pub_path}"
+    printf '%s\n' "${derived}" >"${pub_path}"
+    log "Derived ${pub_path} from ${key_path}"
 }
 
 # Verifies every named age identity is present, then assembles them into the
@@ -118,27 +118,27 @@ derive_ssh_public_key() {
 # Returns:
 #   0 when every identity is present; otherwise calls die and does not return.
 require_age_keys() {
-	(($# > 0)) || die "require_age_keys: needs at least one identity name"
+    (($# > 0)) || die "require_age_keys: needs at least one identity name"
 
-	local parts=() name part
-	for name in "$@"; do
-		part="${NIXFILES_AGE_DIR}/${name}.txt"
-		[[ -r ${part} ]] || die_missing_age_identity "${name}" "${part}"
-		grep --quiet -- "AGE-SECRET-KEY-" "${part}" ||
-			die "${part} holds no AGE-SECRET-KEY- line, so it is not an age identity file."
-		parts+=("${part}")
-	done
+    local parts=() name part
+    for name in "$@"; do
+        part="${NIXFILES_AGE_DIR}/${name}.txt"
+        [[ -r ${part} ]] || die_missing_age_identity "${name}" "${part}"
+        grep --quiet -- "AGE-SECRET-KEY-" "${part}" ||
+            die "${part} holds no AGE-SECRET-KEY- line, so it is not an age identity file."
+        parts+=("${part}")
+    done
 
-	local assembled
-	assembled="$(cat -- "${parts[@]}")"
-	if [[ -r ${NIXFILES_AGE_KEY_FILE} ]] &&
-		[[ "$(cat -- "${NIXFILES_AGE_KEY_FILE}")" == "${assembled}" ]]; then
-		return 0
-	fi
+    local assembled
+    assembled="$(cat -- "${parts[@]}")"
+    if [[ -r ${NIXFILES_AGE_KEY_FILE} ]] &&
+        [[ "$(cat -- "${NIXFILES_AGE_KEY_FILE}")" == "${assembled}" ]]; then
+        return 0
+    fi
 
-	install --mode=600 /dev/null "${NIXFILES_AGE_KEY_FILE}"
-	printf '%s\n' "${assembled}" >"${NIXFILES_AGE_KEY_FILE}"
-	log "Assembled age identities into ${NIXFILES_AGE_KEY_FILE}"
+    install --mode=600 /dev/null "${NIXFILES_AGE_KEY_FILE}"
+    printf '%s\n' "${assembled}" >"${NIXFILES_AGE_KEY_FILE}"
+    log "Assembled age identities into ${NIXFILES_AGE_KEY_FILE}"
 }
 
 # Verifies a secrets checkout is present and holds everything the profile
@@ -153,19 +153,19 @@ require_age_keys() {
 # Returns:
 #   0 when every file is present; otherwise calls die and does not return.
 require_secrets_checkout() {
-	local checkout
-	checkout="${1:-}"
-	[[ -n "${checkout}" ]] || die "require_secrets_checkout: 'checkout path' may not be empty"
-	shift
+    local checkout
+    checkout="${1:-}"
+    [[ -n "${checkout}" ]] || die "require_secrets_checkout: 'checkout path' may not be empty"
+    shift
 
-	(($# > 0)) || die "require_secrets_checkout: needs at least one expected file"
+    (($# > 0)) || die "require_secrets_checkout: needs at least one expected file"
 
-	local missing=() expected
-	for expected in "$@"; do
-		[[ -r "${checkout}/${expected}" ]] || missing+=("${expected}")
-	done
+    local missing=() expected
+    for expected in "$@"; do
+        [[ -r "${checkout}/${expected}" ]] || missing+=("${expected}")
+    done
 
-	((${#missing[@]} == 0)) || die_missing_secrets_checkout "${checkout}" "${missing[@]}"
+    ((${#missing[@]} == 0)) || die_missing_secrets_checkout "${checkout}" "${missing[@]}"
 }
 
 # Verifies an SSH private key is present, private enough for ssh to accept,
@@ -178,25 +178,25 @@ require_secrets_checkout() {
 # Returns:
 #   0 when the key is usable; otherwise calls die and does not return.
 require_ssh_key() {
-	local key_path hint
-	key_path="${1:-}"
-	hint="${2:-}"
-	[[ -n "${key_path}" ]] || die "require_ssh_key: 'key path' may not be empty"
+    local key_path hint
+    key_path="${1:-}"
+    hint="${2:-}"
+    [[ -n "${key_path}" ]] || die "require_ssh_key: 'key path' may not be empty"
 
-	[[ -r ${key_path} ]] || die_missing_ssh_key "${key_path}" "${hint}"
+    [[ -r ${key_path} ]] || die_missing_ssh_key "${key_path}" "${hint}"
 
-	local mode
-	mode="$(stat --format='%a' -- "${key_path}")"
-	(((8#${mode} & 8#77) == 0)) ||
-		die "${key_path} is mode ${mode}; ssh refuses a key others can read. Fix with: chmod 600 ${key_path}"
+    local mode
+    mode="$(stat --format='%a' -- "${key_path}")"
+    (((8#${mode} & 8#77) == 0)) ||
+        die "${key_path} is mode ${mode}; ssh refuses a key others can read. Fix with: chmod 600 ${key_path}"
 
-	if command -v ssh-keygen >/dev/null 2>&1; then
-		# </dev/null so an encrypted key fails instead of prompting.
-		ssh-keygen -y -f "${key_path}" >/dev/null 2>&1 </dev/null ||
-			die "${key_path} does not parse as a private key: truncated, wrong format, or passphrase-protected. This setup uses passphrase-less keys."
-	else
-		warn "ssh-keygen not on PATH; skipped validating ${key_path}."
-	fi
+    if command -v ssh-keygen >/dev/null 2>&1; then
+        # </dev/null so an encrypted key fails instead of prompting.
+        ssh-keygen -y -f "${key_path}" >/dev/null 2>&1 </dev/null ||
+            die "${key_path} does not parse as a private key: truncated, wrong format, or passphrase-protected. This setup uses passphrase-less keys."
+    else
+        warn "ssh-keygen not on PATH; skipped validating ${key_path}."
+    fi
 }
 
 # Runs another profile's prerequisite checks, the way a profile's default.nix
@@ -213,24 +213,24 @@ require_ssh_key() {
 # Returns:
 #   0 when the hook ran or had already run; otherwise calls die and does not return.
 inherit_profile_prerequisites() {
-	local profile
-	profile="${1:-}"
-	[[ -n "${profile}" ]] || die "inherit_profile_prerequisites: 'profile name' may not be empty"
+    local profile
+    profile="${1:-}"
+    [[ -n "${profile}" ]] || die "inherit_profile_prerequisites: 'profile name' may not be empty"
 
-	local seen
-	for seen in "${NIXFILES_INHERITED_PROFILES[@]}"; do
-		if [[ ${seen} == "${profile}" ]]; then
-			return 0
-		fi
-	done
-	NIXFILES_INHERITED_PROFILES+=("${profile}")
+    local seen
+    for seen in "${NIXFILES_INHERITED_PROFILES[@]}"; do
+        if [[ ${seen} == "${profile}" ]]; then
+            return 0
+        fi
+    done
+    NIXFILES_INHERITED_PROFILES+=("${profile}")
 
-	local hook="${NIXFILES_PROFILES_DIR}/${profile}/preflight.sh"
-	[[ -r ${hook} ]] ||
-		die "Profile '${profile}' has no preflight.sh at ${hook} to inherit."
+    local hook="${NIXFILES_PROFILES_DIR}/${profile}/preflight.sh"
+    [[ -r ${hook} ]] ||
+        die "Profile '${profile}' has no preflight.sh at ${hook} to inherit."
 
-	#shellcheck source=/dev/null
-	source "${hook}"
+    #shellcheck source=/dev/null
+    source "${hook}"
 }
 
 # Runs a profile's own prerequisite checks, when it has any, then assembles
@@ -243,24 +243,24 @@ inherit_profile_prerequisites() {
 # Returns:
 #   0 when the profile can be activated; otherwise calls die and does not return.
 require_profile_prerequisites() {
-	local profile
-	profile="${1:-}"
-	[[ -n "${profile}" ]] || die "require_profile_prerequisites: 'profile name' may not be empty"
+    local profile
+    profile="${1:-}"
+    [[ -n "${profile}" ]] || die "require_profile_prerequisites: 'profile name' may not be empty"
 
-	# Reset per run: both accumulate as the hook chain is sourced.
-	NIXFILES_INHERITED_PROFILES=()
-	NIXFILES_AGE_IDENTITIES=()
+    # Reset per run: both accumulate as the hook chain is sourced.
+    NIXFILES_INHERITED_PROFILES=()
+    NIXFILES_AGE_IDENTITIES=()
 
-	local hook="${NIXFILES_PROFILES_DIR}/${profile}/preflight.sh"
-	[[ -r ${hook} ]] || return 0
+    local hook="${NIXFILES_PROFILES_DIR}/${profile}/preflight.sh"
+    [[ -r ${hook} ]] || return 0
 
-	#shellcheck source=/dev/null
-	source "${hook}"
+    #shellcheck source=/dev/null
+    source "${hook}"
 
-	# sops.age.keyFile is a single path, so every identity the chain declared
-	# has to land in one file. Assembled once, after the chain, so an
-	# inheriting profile extends the list instead of overwriting it.
-	if ((${#NIXFILES_AGE_IDENTITIES[@]} > 0)); then
-		require_age_keys "${NIXFILES_AGE_IDENTITIES[@]}"
-	fi
+    # sops.age.keyFile is a single path, so every identity the chain declared
+    # has to land in one file. Assembled once, after the chain, so an
+    # inheriting profile extends the list instead of overwriting it.
+    if ((${#NIXFILES_AGE_IDENTITIES[@]} > 0)); then
+        require_age_keys "${NIXFILES_AGE_IDENTITIES[@]}"
+    fi
 }

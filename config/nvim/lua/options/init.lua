@@ -11,7 +11,7 @@ opt.number = true -- shows absolute line number on cursor line (when relative nu
 opt.cursorline = true -- highlight the current line
 
 -- tabs & indentation
-opt.tabstop = 4 -- 4 spaces for tabs (prettier default)
+opt.tabstop = 4 -- display width of a tab character
 opt.shiftwidth = 4 -- 4 spaces for indent width
 opt.expandtab = true -- expand tab to spaces
 opt.autoindent = true -- copy indent from current line when starting new one
@@ -46,15 +46,15 @@ opt.sidescrolloff = 8 -- minimal number of screen lines to keep left and right o
 
 -- Diagnostics
 vim.diagnostic.config({
-	signs = {
-		text = {
-			[vim.diagnostic.severity.ERROR] = " ",
-			[vim.diagnostic.severity.WARN] = " ",
-			[vim.diagnostic.severity.HINT] = "󰠠 ",
-			[vim.diagnostic.severity.INFO] = " ",
-		},
-	},
-	virtual_lines = {
-		current_line = true,
-	},
+    signs = {
+        text = {
+            [vim.diagnostic.severity.ERROR] = " ",
+            [vim.diagnostic.severity.WARN] = " ",
+            [vim.diagnostic.severity.HINT] = "󰠠 ",
+            [vim.diagnostic.severity.INFO] = " ",
+        },
+    },
+    virtual_lines = {
+        current_line = true,
+    },
 })

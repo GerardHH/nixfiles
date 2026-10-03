@@ -24,6 +24,6 @@ warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }
 # Returns:
 #   Does not return; exits 1.
 die() {
-	printf '\033[1;31merror:\033[0m %s\n' "$*" >&2
-	exit 1
+    printf '\033[1;31merror:\033[0m %s\n' "$*" >&2
+    exit 1
 }

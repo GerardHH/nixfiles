@@ -1,12 +1,12 @@
 {
-  pkgs,
-  link,
-  ...
+    pkgs,
+    link,
+    ...
 }:
 {
-  home.packages = with pkgs; [
-    ripgrep
-  ];
+    home.packages = with pkgs; [
+        ripgrep
+    ];
 
-  home.file.".ripgreprc".source = link "config/ripgreprc";
+    home.file.".ripgreprc".source = link "config/ripgreprc";
 }

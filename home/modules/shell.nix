@@ -1,30 +1,30 @@
 {
-  pkgs,
-  link,
-  ...
+    pkgs,
+    link,
+    ...
 }:
 {
-  imports = [
-    ./fzf.nix
-  ];
+    imports = [
+        ./fzf.nix
+    ];
 
-  home.packages = with pkgs; [
-    bash-completion
-    bat
-    carapace
-    eza
-    navi
-    oh-my-posh
-    tmux
-    zoxide
-  ];
+    home.packages = with pkgs; [
+        bash-completion
+        bat
+        carapace
+        eza
+        navi
+        oh-my-posh
+        tmux
+        zoxide
+    ];
 
-  home.file.".bashrc".source = link "config/bashrc";
+    home.file.".bashrc".source = link "config/bashrc";
 
-  xdg.configFile = {
-    "bash".source = link "config/bash";
-    "navi".source = link "config/navi";
-    "oh-my-posh".source = link "config/oh-my-posh";
-    "tmux".source = link "config/tmux";
-  };
+    xdg.configFile = {
+        "bash".source = link "config/bash";
+        "navi".source = link "config/navi";
+        "oh-my-posh".source = link "config/oh-my-posh";
+        "tmux".source = link "config/tmux";
+    };
 }

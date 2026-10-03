@@ -5,15 +5,15 @@
 
 # Nix
 for _nix_profile in \
-	/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh \
-	/nix/var/nix/profiles/default/etc/profile.d/nix.sh \
-	"$HOME/.nix-profile/etc/profile.d/nix.sh"; do
-	[ -f "$_nix_profile" ] && . "$_nix_profile" && break
+    /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh \
+    /nix/var/nix/profiles/default/etc/profile.d/nix.sh \
+    "$HOME/.nix-profile/etc/profile.d/nix.sh"; do
+    [ -f "$_nix_profile" ] && . "$_nix_profile" && break
 done
 unset _nix_profile
 
 [ -f "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh" ] &&
-	. "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
+    . "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
 
 # pre-commit rejects executables under $HOME as "not system" and falls back to
 # downloading its own node. The profile's store path is outside $HOME, so the
@@ -25,9 +25,9 @@ export PATH="$(readlink --canonicalize "$HOME/.nix-profile")/bin:$PATH"
 
 # Completions
 for _bc in \
-	"$HOME/.nix-profile/share/bash-completion/bash_completion" \
-	/etc/profile.d/bash_completion.sh; do
-	[ -r "$_bc" ] && source "$_bc" && break
+    "$HOME/.nix-profile/share/bash-completion/bash_completion" \
+    /etc/profile.d/bash_completion.sh; do
+    [ -r "$_bc" ] && source "$_bc" && break
 done
 unset _bc
 
@@ -51,8 +51,8 @@ export SHELL="${SHELL:-${BASH:-/bin/bash}}"        # Export SHELL in case it did
 # Which nix-home-manager profile is active. Used by oh-my-posh for instance
 _nixfiles_profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/nixfiles/profile"
 if [ -r "$_nixfiles_profile_file" ]; then
-	read -r NIXFILES_PROFILE <"$_nixfiles_profile_file" || true
-	export NIXFILES_PROFILE
+    read -r NIXFILES_PROFILE <"$_nixfiles_profile_file" || true
+    export NIXFILES_PROFILE
 fi
 unset _nixfiles_profile_file
 

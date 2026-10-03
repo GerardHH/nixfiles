@@ -29,7 +29,7 @@ command -v curl >/dev/null || die "curl missing: sudo apt install --yes curl"
 command -v git >/dev/null || die "git missing: sudo apt install --yes git"
 
 if is_container && ! nix_is_installed; then
-	die "No nix in this container, and installing it here cannot work.
+    die "No nix in this container, and installing it here cannot work.
  /nix is supposed to be bind-mounted from the host, check that the mount landed:
  podman inspect --format '{{range .Mounts}}{{.Source}}{{\"\\n\"}}{{end}}' <container>"
 fi
@@ -39,12 +39,12 @@ require_profile "${NIXFILES_REPO_DIR}" "${PROFILE}"
 require_profile_prerequisites "${PROFILE}"
 
 if nix_is_installed; then
-	log "Nix already present, skipping install"
+    log "Nix already present, skipping install"
 else
-	log "Installing Nix"
-	curl --silent --show-error --fail --location \
-		https://artifacts.nixos.org/nix-installer |
-		sh -s -- install --enable-flakes --no-confirm
+    log "Installing Nix"
+    curl --silent --show-error --fail --location \
+        https://artifacts.nixos.org/nix-installer |
+        sh -s -- install --enable-flakes --no-confirm
 fi
 
 load_nix

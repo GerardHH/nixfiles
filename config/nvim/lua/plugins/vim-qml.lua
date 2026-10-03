@@ -1,5 +1,5 @@
 return {
-	"peterhoeg/vim-qml",
-	lazy = true,
-	ft = "qml",
+    "peterhoeg/vim-qml",
+    lazy = true,
+    ft = "qml",
 }

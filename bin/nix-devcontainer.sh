@@ -26,7 +26,7 @@ set -o errexit -o nounset -o pipefail
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/../lib/common.sh"
 
 if is_container; then
-	die "This is a host tool; it drives the dev container through podman."
+    die "This is a host tool; it drives the dev container through podman."
 fi
 
 command -v devcontainer >/dev/null || die "devcontainer is not on PATH; is pkgs.devcontainer in home.packages?"
@@ -35,22 +35,22 @@ command -v podman >/dev/null || die "podman missing: sudo apt install --yes podm
 WORKSPACE="$(realpath -- "${1:-${PWD}}")"
 
 default_options=(
-	--docker-path podman
-	--workspace-folder "${WORKSPACE}"
+    --docker-path podman
+    --workspace-folder "${WORKSPACE}"
 )
 
 devcontainer up \
-	"${default_options[@]}" \
-	--mount "type=bind,source=/etc/nix,target=/etc/nix" \
-	--mount "type=bind,source=/nix,target=/nix" \
-	--mount "type=bind,source=${NIXFILES_REPO_DIR},target=/home/ubuntu/nixfiles" \
-	--remove-existing-container
+    "${default_options[@]}" \
+    --mount "type=bind,source=/etc/nix,target=/etc/nix" \
+    --mount "type=bind,source=/nix,target=/nix" \
+    --mount "type=bind,source=${NIXFILES_REPO_DIR},target=/home/ubuntu/nixfiles" \
+    --remove-existing-container
 
 #shellcheck disable=SC2088
 devcontainer exec \
-	"${default_options[@]}" \
-	bash -lc '~/nixfiles/install.sh'
+    "${default_options[@]}" \
+    bash -lc '~/nixfiles/install.sh'
 
 devcontainer exec \
-	"${default_options[@]}" \
-	bash
+    "${default_options[@]}" \
+    bash

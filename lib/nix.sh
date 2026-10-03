@@ -19,19 +19,19 @@ NIXFILES_NIX_PROFILE_DIR="/nix/var/nix/profiles/default"
 # Returns:
 #   Does not return; exits 1.
 diagnose_missing_nix() {
-	printf '\033[1;31merror:\033[0m nix is not on PATH after setup.\n\n' >&2
+    printf '\033[1;31merror:\033[0m nix is not on PATH after setup.\n\n' >&2
 
-	if [[ ! -d /nix ]]; then
-		cat >&2 <<'EOF'
+    if [[ ! -d /nix ]]; then
+        cat >&2 <<'EOF'
   /nix does not exist, so the installer never completed. Re-run this
   script and read its output, or install by hand to see the failure:
 
     curl --silent --show-error --fail --location \
       https://artifacts.nixos.org/nix-installer | sh -s -- install --enable-flakes
 EOF
-	elif [[ ! -x ${NIXFILES_NIX_PROFILE_DIR}/bin/nix ]]; then
-		if [[ -e /nix/receipt.json ]]; then
-			cat >&2 <<'EOF'
+    elif [[ ! -x ${NIXFILES_NIX_PROFILE_DIR}/bin/nix ]]; then
+        if [[ -e /nix/receipt.json ]]; then
+            cat >&2 <<'EOF'
   /nix exists but holds no nix binary, and an install receipt is present.
   A previous install was almost certainly interrupted. Repair it:
 
@@ -41,31 +41,31 @@ EOF
 
     /nix/nix-installer uninstall
 EOF
-		else
-			cat >&2 <<'EOF'
+        else
+            cat >&2 <<'EOF'
   /nix exists but holds no nix binary, and there is no install receipt at
   /nix/receipt.json. That means /nix came from something other than this
   installer — the nix-bin apt package, nix-portable, or a manual extraction.
   Remove that installation (or move /nix aside) before re-running.
 EOF
-		fi
-	else
-		cat >&2 <<'EOF'
+        fi
+    else
+        cat >&2 <<'EOF'
   The binary exists at /nix/var/nix/profiles/default/bin/nix but the
   environment did not load. Check the daemon and the generated profile:
 
     systemctl status nix-daemon.service --no-pager
     ls -l /nix/var/nix/profiles/default/etc/profile.d/
 EOF
-	fi
+    fi
 
-	cat >&2 <<'EOF'
+    cat >&2 <<'EOF'
 
   Diagnostics for any of the above:
 
     /nix/nix-installer self-test
 EOF
-	exit 1
+    exit 1
 }
 
 # Loads Nix into the current shell environment.
@@ -84,22 +84,22 @@ EOF
 #   0 always, including when no profile script is found. Callers must
 #   verify Nix is usable afterwards, e.g. with diagnose_missing_nix.
 load_nix() {
-	local candidate
-	for candidate in \
-		${NIXFILES_NIX_PROFILE_DIR}/etc/profile.d/nix-daemon.sh \
-		${NIXFILES_NIX_PROFILE_DIR}/etc/profile.d/nix.sh \
-		"${HOME}/.nix-profile/etc/profile.d/nix.sh" \
-		/etc/profile.d/nix.sh; do
-		if [[ -e ${candidate} ]]; then
-			set +o nounset
-			#shellcheck source=/dev/null
-			. "${candidate}"
-			set -o nounset
-			break
-		fi
-	done
+    local candidate
+    for candidate in \
+        ${NIXFILES_NIX_PROFILE_DIR}/etc/profile.d/nix-daemon.sh \
+        ${NIXFILES_NIX_PROFILE_DIR}/etc/profile.d/nix.sh \
+        "${HOME}/.nix-profile/etc/profile.d/nix.sh" \
+        /etc/profile.d/nix.sh; do
+        if [[ -e ${candidate} ]]; then
+            set +o nounset
+            #shellcheck source=/dev/null
+            . "${candidate}"
+            set -o nounset
+            break
+        fi
+    done
 
-	export PATH="${NIXFILES_NIX_PROFILE_DIR}/bin:${HOME}/.nix-profile/bin:${PATH}"
+    export PATH="${NIXFILES_NIX_PROFILE_DIR}/bin:${HOME}/.nix-profile/bin:${PATH}"
 }
 
 # Verifies a directory is a git work tree and reports untracked files.
@@ -113,19 +113,19 @@ load_nix() {
 # Returns:
 #   0 if the path is a work tree; otherwise calls die and does not return.
 require_git_tracked() {
-	local repo
-	repo="${1:-}"
-	[[ -n "${repo}" ]] || die "require_git_tracked: 'repository path' may not be empty"
+    local repo
+    repo="${1:-}"
+    [[ -n "${repo}" ]] || die "require_git_tracked: 'repository path' may not be empty"
 
-	git -C "${repo}" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
-		die "${repo} is not a git repo; flakes need one."
+    git -C "${repo}" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+        die "${repo} is not a git repo; flakes need one."
 
-	local untracked
-	mapfile -t untracked < <(git -C "${repo}" ls-files --others --exclude-standard)
-	if ((${#untracked[@]} > 0)); then
-		warn "Untracked files are invisible to the flake:"
-		printf '       %s\n' "${untracked[@]}"
-	fi
+    local untracked
+    mapfile -t untracked < <(git -C "${repo}" ls-files --others --exclude-standard)
+    if ((${#untracked[@]} > 0)); then
+        warn "Untracked files are invisible to the flake:"
+        printf '       %s\n' "${untracked[@]}"
+    fi
 }
 
 # Activates a Home Manager profile.
@@ -146,32 +146,32 @@ require_git_tracked() {
 # Returns:
 #   The exit status of home-manager switch.
 hm_switch() {
-	local repo
-	repo="${1:-}"
-	[[ -n "${repo}" ]] || die "hm_switch: 'repository path' may not be empty"
+    local repo
+    repo="${1:-}"
+    [[ -n "${repo}" ]] || die "hm_switch: 'repository path' may not be empty"
 
-	local profile
-	profile="${2:-}"
-	[[ -n "${profile}" ]] || die "hm_switch: 'profile name' may not be empty"
+    local profile
+    profile="${2:-}"
+    [[ -n "${profile}" ]] || die "hm_switch: 'profile name' may not be empty"
 
-	shift 2
+    shift 2
 
-	if [[ -z "${USER:-}" ]]; then
-		USER="$(id --user --name)" || die "USER is unset and 'id --user --name' failed; home-manager cannot run."
-		export USER
-	fi
+    if [[ -z "${USER:-}" ]]; then
+        USER="$(id --user --name)" || die "USER is unset and 'id --user --name' failed; home-manager cannot run."
+        export USER
+    fi
 
-	local profile_args=()
-	mapfile -t profile_args < <(profile_nix_args "${profile}")
+    local profile_args=()
+    mapfile -t profile_args < <(profile_nix_args "${profile}")
 
-	log "Activating ${profile}"
-	if command -v home-manager >/dev/null 2>&1; then
-		home-manager switch -b backup --flake "${repo}#${profile}" "${profile_args[@]}" "$@"
-	else
-		nix --extra-experimental-features "nix-command flakes" \
-			run "${HM_REF}" -- \
-			switch -b backup --flake "${repo}#${profile}" "${profile_args[@]}" "$@"
-	fi
+    log "Activating ${profile}"
+    if command -v home-manager >/dev/null 2>&1; then
+        home-manager switch -b backup --flake "${repo}#${profile}" "${profile_args[@]}" "$@"
+    else
+        nix --extra-experimental-features "nix-command flakes" \
+            run "${HM_REF}" -- \
+            switch -b backup --flake "${repo}#${profile}" "${profile_args[@]}" "$@"
+    fi
 }
 
 # Reports whether Nix is already installed on this machine.
@@ -182,5 +182,5 @@ hm_switch() {
 # Returns:
 #   0 when Nix appears installed, 1 otherwise.
 nix_is_installed() {
-	[[ -e ${NIXFILES_NIX_PROFILE_DIR} ]]
+    [[ -e ${NIXFILES_NIX_PROFILE_DIR} ]]
 }

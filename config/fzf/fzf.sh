@@ -12,15 +12,15 @@ export FZF_COMPLETION_OPTS='--preview "source ${XDG_CONFIG_HOME:-$HOME/.config}/
 
 FZF_TAB_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/fzf-tab-completion"
 if [ -f "$FZF_TAB_DIR/bash/fzf-bash-completion.sh" ]; then
-	source "$FZF_TAB_DIR/bash/fzf-bash-completion.sh"
-	bind -x '"\t": fzf_bash_completion'
+    source "$FZF_TAB_DIR/bash/fzf-bash-completion.sh"
+    bind -x '"\t": fzf_bash_completion'
 fi
 
 __fzf_history_search() {
-	BUFFER=$(history | cut --characters 8- | fzf --tac +s --no-sort --reverse --query "$READLINE_LINE")
-	if [[ -n "$BUFFER" ]]; then
-		READLINE_LINE="$BUFFER"
-		READLINE_POINT=${#READLINE_LINE}
-	fi
+    BUFFER=$(history | cut --characters 8- | fzf --tac +s --no-sort --reverse --query "$READLINE_LINE")
+    if [[ -n "$BUFFER" ]]; then
+        READLINE_LINE="$BUFFER"
+        READLINE_POINT=${#READLINE_LINE}
+    fi
 }
 bind -x '"\C-r": __fzf_history_search'

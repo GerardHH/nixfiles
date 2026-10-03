@@ -1,22 +1,22 @@
 {
-  pkgs,
-  link,
-  ...
+    pkgs,
+    link,
+    ...
 }:
 {
-  imports = [
-    ./fonts.nix
-    ./git.nix
-    ./languages
-    ./nvim.nix
-    ./shell.nix
-  ];
+    imports = [
+        ./fonts.nix
+        ./git.nix
+        ./languages
+        ./nvim.nix
+        ./shell.nix
+    ];
 
-  home.packages = with pkgs; [
-    btop
-  ];
+    home.packages = with pkgs; [
+        btop
+    ];
 
-  xdg.configFile = {
-    "btop".source = link "config/btop";
-  };
+    xdg.configFile = {
+        "btop".source = link "config/btop";
+    };
 }

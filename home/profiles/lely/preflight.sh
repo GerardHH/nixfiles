@@ -15,13 +15,13 @@ NIXFILES_AGE_IDENTITIES+=(lely)
 
 # Private key is not tracked, check if it exists and is valid.
 require_ssh_key "${LELY_SSH_KEY}" \
-	"Restore it from your password manager, or generate a new pair and register the public half with server"
+    "Restore it from your password manager, or generate a new pair and register the public half with server"
 
 # Public half is not tracked, generate from private half.
 derive_ssh_public_key "${LELY_SSH_KEY}"
 
 require_secrets_checkout "${LELY_SECRETS_DIR}" \
-	"secrets/artifactory.yaml" \
-	"secrets/git.yaml" \
-	"secrets/ssh.yaml" \
-	"secrets/ssh-keys"
+    "secrets/artifactory.yaml" \
+    "secrets/git.yaml" \
+    "secrets/ssh.yaml" \
+    "secrets/ssh-keys"

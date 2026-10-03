@@ -25,12 +25,12 @@ ACTION="${1:-check}"
 
 case "${ACTION}" in
 check)
-	check_host_fixes
-	;;
+    check_host_fixes
+    ;;
 apply)
-	apply_bwrap_profile
-	;;
+    apply_bwrap_profile
+    ;;
 *)
-	die "Unknown action '${ACTION}'. Use 'check' or 'apply'."
-	;;
+    die "Unknown action '${ACTION}'. Use 'check' or 'apply'."
+    ;;
 esac

@@ -25,8 +25,8 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/../lib/common.sh"
 
 REQUESTED_PROFILE=""
 if [[ -n ${1:-} && ${1} != -* ]]; then
-	REQUESTED_PROFILE="${1}"
-	shift
+    REQUESTED_PROFILE="${1}"
+    shift
 fi
 
 PROFILE="$(resolve_profile "${REQUESTED_PROFILE}")"
