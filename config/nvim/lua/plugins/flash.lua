@@ -1,12 +1,24 @@
+-- <CR> keeps its built-in meaning outside file buffers: quickfix and the
+-- command-line window use it to jump and to execute.
+local function in_file_buffer(fn)
+    return function()
+        if vim.bo.buftype ~= "" then
+            vim.api.nvim_feedkeys(vim.keycode("<CR>"), "n", false)
+            return
+        end
+        fn()
+    end
+end
+
 return {
     "folke/flash.nvim",
     lazy = true,
     keys = {
-        { "s", mode = { "n", "x", "o" }, function() require("flash").jump() end, desc = "Flash jump" },
+        { "<CR>", mode = { "n", "x", "o" }, function() require("flash").jump() end, desc = "Flash jump" },
         {
-            "S",
+            "<S-CR>",
             mode = { "n", "x", "o" },
-            function() require("flash").treesitter() end,
+            in_file_buffer(function() require("flash").treesitter() end),
             desc = "Flash treesitter jump",
         },
         { "r", mode = "o", function() require("flash").remote() end, desc = "Flash remote" },

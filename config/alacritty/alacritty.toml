@@ -86,3 +86,10 @@ save_to_clipboard = true
 [terminal]
 shell = "bash"
 osc52 = "OnlyCopy"
+
+# Shift-Enter normally sends the same carriage return as Enter.
+# ESC [ 13 ; 2 u = key code 13 (Enter) with modifier 2 (Shift).
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001b[13;2u"
