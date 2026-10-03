@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="3">
+    <name>text</name>
+    <version>0.1.0</version>
+    <description>Test bed package for neotest in a colcon workspace.</description>
+    <maintainer email="gh.heshusius@gmail.com">Gerard Heshusius</maintainer>
+    <license>MIT</license>
+    <export>
+        <build_type>cmake</build_type>
+    </export>
+</package>

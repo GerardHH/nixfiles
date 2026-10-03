@@ -95,24 +95,16 @@ return {
             "nvim-neotest/nvim-nio",
             "nvim-treesitter/nvim-treesitter",
             "mrcjkb/rustaceanvim",
-            "orjangj/neotest-ctest",
+            {
+                dir = vim.fn.stdpath("config") .. "/local-plugins/neotest-testmate",
+                dependencies = "orjangj/neotest-ctest",
+            },
         },
         opts = function()
-            local ctest = require("neotest-ctest").setup({
-                dap_adapter = "codelldb",
-                frameworks = { "catch2", "gtest" },
-            })
-            -- A debug run launches the test binary without CTest, so there is no
-            -- result file to parse; reading it anyway raises an ENOENT error.
-            local ctest_results = ctest.results
-            ctest.results = function(spec, ...)
-                if spec.strategy and spec.strategy.request then return {} end
-                return ctest_results(spec, ...)
-            end
             return {
                 adapters = {
                     require("rustaceanvim.neotest"),
-                    ctest,
+                    require("neotest-testmate"),
                 },
                 floating = {
                     border = "rounded",
