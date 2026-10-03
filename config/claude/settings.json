@@ -1,5 +1,8 @@
 {
   "permissions": {
+    "allow": [
+      "Edit(//tmp/claude-1000/**)"
+    ],
     "deny": [
       "Read(~/.ssh/**)",
       "Read(//**/.env)",
@@ -11,9 +14,6 @@
       "Read(//**/secrets.d/**)",
       "Read(~/.netrc)",
       "Read(~/.jfrog)"
-    ],
-    "allow": [
-        "Edit(//tmp/claude-1000/**)"
     ],
     "defaultMode": "auto"
   },
@@ -52,5 +52,8 @@
     "claude-opus-5-5": {
       "effortLevel": "high"
     }
+  },
+  "enabledPlugins": {
+    "lua-lsp@claude-plugins-official": true
   }
 }
