@@ -101,11 +101,13 @@ return {
             },
         },
         opts = function()
+            local adapters = { require("neotest-testmate") }
+            -- rustaceanvim stays disabled where rust-analyzer is missing.
+            -- Only load its adapter if it can be loaded.
+            local has_rust, rust = pcall(require, "rustaceanvim.neotest")
+            if has_rust then table.insert(adapters, rust) end
             return {
-                adapters = {
-                    require("rustaceanvim.neotest"),
-                    require("neotest-testmate"),
-                },
+                adapters = adapters,
                 floating = {
                     border = "rounded",
                 },
