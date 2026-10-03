@@ -72,11 +72,6 @@ bash, alacritty). If not done yet, clean up the running tmux:
 `rm --recursive --force ~/.tmux/plugins/vim-tmux-navigator`, and `:Lazy clean`
 in nvim.
 
-### 2026-10-03 · Claude Code: `@` completion no longer pre-selects
-
-After an update, `@` file completion no longer pre-selects the first match.
-Find out whether a setting restores it, or report it with `/feedback`.
-
 ### 2026-10-03 · Container bash history across rebuilds
 
 Move `HISTFILE` to `${XDG_STATE_HOME:-$HOME/.local/state}/bash/history`
