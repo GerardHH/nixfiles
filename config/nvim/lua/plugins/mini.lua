@@ -30,12 +30,23 @@ return {
         "echasnovski/mini.move",
         lazy = true,
         keys = {
-            { "<M-h>", mode = { "n", "x" }, desc = "Indent line/selection left (mini.move)" },
-            { "<M-l>", mode = { "n", "x" }, desc = "Indent line/selection right (mini.move)" },
-            { "<M-j>", mode = { "n", "x" }, desc = "Move line/selection down (mini.move)" },
-            { "<M-k>", mode = { "n", "x" }, desc = "Move line/selection up (mini.move)" },
+            { "<M-H>", mode = { "n", "x" }, desc = "Indent line/selection left (mini.move)" },
+            { "<M-L>", mode = { "n", "x" }, desc = "Indent line/selection right (mini.move)" },
+            { "<M-J>", mode = { "n", "x" }, desc = "Move line/selection down (mini.move)" },
+            { "<M-K>", mode = { "n", "x" }, desc = "Move line/selection up (mini.move)" },
         },
-        opts = {},
+        opts = {
+            mappings = {
+                left = "<M-H>",
+                right = "<M-L>",
+                down = "<M-J>",
+                up = "<M-K>",
+                line_left = "<M-H>",
+                line_right = "<M-L>",
+                line_down = "<M-J>",
+                line_up = "<M-K>",
+            },
+        },
     },
     {
         "echasnovski/mini.operators",
