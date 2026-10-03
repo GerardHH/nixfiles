@@ -62,13 +62,6 @@ out of this repo; facts only.
 Try `/vim` in the prompt; if it sticks, set `editorMode` in
 `config/claude/settings.json`.
 
-### 2026-10-03 · `<leader>ba` fails on terminal buffers
-
-Close all buffers reports
-`E89: term://…:/usr/bin/sh will be killed (add ! to override)`: a terminal
-buffer (an overseer task?) refuses a non-forced delete. Decide whether to
-skip terminal buffers or force-delete them.
-
 ### 2026-10-03 · Key layers: finish up
 
 Ctrl for the program (nvim, fzf), Alt for tmux, Super for a future window
@@ -101,6 +94,22 @@ immediately.
 completion for tmux.
 
 ## Later
+
+### 2026-10-03 · `<leader>ba` fails on terminal buffers
+
+Overseer related; overseer is disabled for now (`enabled = false` in
+`config/nvim/lua/plugins/task.lua`). The error went away after an nvim
+restart, so whether overseer opened the terminal is still open. Cause not
+found: overseer's own task buffers are unlisted scratch buffers
+from `nvim_open_term`, while the `term://…:/usr/bin/sh` name is what
+`:terminal` with shell `/usr/bin/sh` produces. `%bd` stops at the first
+buffer `:bdelete` refuses (E89: a terminal with a running job, or a modified
+buffer), so the current buffer stays open too; `<leader>bo`
+(`%bd | e# | bd#`) breaks the same way. Fix drafted (not applied): a
+`delete_buffers(keep)` helper in `config/nvim/lua/keymaps.lua` that runs
+`pcall(vim.cmd.bdelete, buf)` on each listed buffer, current one last, and
+lists what it kept. Recommended: skip refused buffers rather than
+force-delete.
 
 ### 2026-10-03 · nvim statusline at the top
 
