@@ -31,6 +31,7 @@ for _bc in \
 done
 unset _bc
 
+source "${XDG_CONFIG_HOME:-$HOME/.config}/bash/claude.sh"
 source "${XDG_CONFIG_HOME:-$HOME/.config}/bash/eza.sh"
 source "${XDG_CONFIG_HOME:-$HOME/.config}/bash/history_config.sh"
 source "${XDG_CONFIG_HOME:-$HOME/.config}/fzf/fzf.sh"
