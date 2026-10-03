@@ -31,13 +31,9 @@ return {
                 -- Only load the session if nvim was started with no args
                 if vim.fn.argc(-1) == 0 then
                     resession.load(get_session_name(), { dir = "dirsession", silence_errors = true })
-                    -- Work around for plugins not loading depending on this signal
-                    -- https://github.com/stevearc/resession.nvim/issues/44#issuecomment-1929764507
-                    vim.cmd.doautoall("BufEnter")
-                    vim.cmd.doautoall("BufWinEnter")
-                    vim.cmd.doautoall("BufReadPre")
                 end
             end,
+            nested = true,
         })
         vim.api.nvim_create_autocmd("VimLeavePre", {
             group = ressesion_group,
