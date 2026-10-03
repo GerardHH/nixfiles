@@ -57,26 +57,6 @@ out of this repo; facts only.
 
 ## Next
 
-### 2026-10-03 · Treesitter: error in nvim, `dif` broken
-
-Text objects stopped working: `dif` (delete inside function) does nothing
-in Lua; other languages not checked yet. Both nvim-treesitter and
-nvim-treesitter-textobjects are pinned to their archived `master` branches,
-so this likely shares a cause with the error below. Moving to `main` means
-moving textobjects to its `main` branch too, whose keymaps are set by hand
-instead of through `nvim-treesitter.configs`.
-
-`vim/treesitter.lua:197: attempt to call method 'range' (a nil value)`: once
-from blink.cmp, and from the highlighter when opening `.sh` files and
-Lua files (`config/nvim/lua/plugins/nvim-surround.lua`), in nvim 0.12.4.
-Not reproduced headless. Lead: the bash `injections.scm` comes from
-nvim-treesitter's `master` branch (archived, not meant for nvim 0.12), whose
-custom directives can pass a list of nodes where 0.12 expects one. Options:
-move to nvim-treesitter's `main` branch, or stop loading its queries (the
-parsers already come from nix through `$NVIM_NIX_RUNTIME`). The container
-briefly wrote `"branch": "main"` into `lazy-lock.json`; keep the lock
-consistent.
-
 ### 2026-10-03 · Claude Code: vi keybindings
 
 Try `/vim` in the prompt; if it sticks, set `editorMode` in

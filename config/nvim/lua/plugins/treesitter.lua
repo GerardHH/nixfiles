@@ -1,19 +1,36 @@
 local languages = require("languages")
 
+local function textobject(capture)
+    return function() require("nvim-treesitter-textobjects.select").select_textobject(capture, "textobjects") end
+end
+
 return {
     {
         "nvim-treesitter/nvim-treesitter",
-        lazy = true,
-        event = "VeryLazy",
-        opts = {
-            highlight = { enable = true },
-            indent = { enable = true },
-            -- Parsers come from nix, via home/modules/nvim.nix.
-            auto_install = false,
-            ensure_installed = {},
-        },
-        config = function(_, opts)
-            require("nvim-treesitter.configs").setup(opts)
+        branch = "main",
+        -- The main branch doesn't support lazy-loading.
+        lazy = false,
+        config = function(plugin)
+            -- Parsers come from nix, via home/modules/nvim.nix. Installing them with
+            -- :TSInstall is what would link these queries into the runtimepath, so add
+            -- them by hand. Appended, so that Neovim's bundled queries stay first for
+            -- the parsers it bundles.
+            vim.opt.runtimepath:append(plugin.dir .. "/runtime")
+
+            vim.api.nvim_create_autocmd("FileType", {
+                group = vim.api.nvim_create_augroup("treesitter", { clear = true }),
+                callback = function(args)
+                    local language = vim.treesitter.language.get_lang(args.match)
+
+                    if not language or not vim.treesitter.language.add(language) then return end
+
+                    vim.treesitter.start(args.buf, language)
+
+                    if vim.treesitter.query.get(language, "indents") then
+                        vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+                    end
+                end,
+            })
 
             local missing = {}
 
@@ -62,48 +79,28 @@ return {
     },
     {
         "https://github.com/nvim-treesitter/nvim-treesitter-textobjects",
-        dependencies = {
-            "nvim-treesitter/nvim-treesitter",
-        },
+        branch = "main",
+        main = "nvim-treesitter-textobjects",
         lazy = true,
         keys = {
-            { "af", mode = { "v", "o" }, desc = "Around function" },
-            { "if", mode = { "v", "o" }, desc = "Inside function" },
-            { "ac", mode = { "v", "o" }, desc = "Around class" },
-            { "ic", mode = { "v", "o" }, desc = "Inside class" },
-            { "ai", mode = { "v", "o" }, desc = "Around conditional (if)" },
-            { "ii", mode = { "v", "o" }, desc = "Inside conditional (if)" },
-            { "al", mode = { "v", "o" }, desc = "Around loop" },
-            { "il", mode = { "v", "o" }, desc = "Inside loop" },
-            { "at", mode = { "v", "o" }, desc = "Select comment (text)" },
-            { "ap", mode = { "v", "o" }, desc = "Around parameter" },
-            { "ip", mode = { "v", "o" }, desc = "Inside parameter" },
-            { "ar", mode = { "v", "o" }, desc = "Around return" },
-            { "ir", mode = { "v", "o" }, desc = "Inside return" },
+            { "af", textobject("@function.outer"), mode = { "x", "o" }, desc = "Around function" },
+            { "if", textobject("@function.inner"), mode = { "x", "o" }, desc = "Inside function" },
+            { "ac", textobject("@class.outer"), mode = { "x", "o" }, desc = "Around class" },
+            { "ic", textobject("@class.inner"), mode = { "x", "o" }, desc = "Inside class" },
+            { "ai", textobject("@conditional.outer"), mode = { "x", "o" }, desc = "Around conditional (if)" },
+            { "ii", textobject("@conditional.inner"), mode = { "x", "o" }, desc = "Inside conditional (if)" },
+            { "al", textobject("@loop.outer"), mode = { "x", "o" }, desc = "Around loop" },
+            { "il", textobject("@loop.inner"), mode = { "x", "o" }, desc = "Inside loop" },
+            { "at", textobject("@comment.outer"), mode = { "x", "o" }, desc = "Select comment (text)" },
+            { "ap", textobject("@parameter.outer"), mode = { "x", "o" }, desc = "Around parameter" },
+            { "ip", textobject("@parameter.inner"), mode = { "x", "o" }, desc = "Inside parameter" },
+            { "ar", textobject("@return.outer"), mode = { "x", "o" }, desc = "Around return" },
+            { "ir", textobject("@return.inner"), mode = { "x", "o" }, desc = "Inside return" },
         },
         opts = {
-            textobjects = {
-                select = {
-                    enable = true,
-                    lookahead = true, -- Jump forward to textobj
-                    keymaps = {
-                        ["af"] = "@function.outer",
-                        ["if"] = "@function.inner",
-                        ["ac"] = "@class.outer",
-                        ["ic"] = "@class.inner",
-                        ["ai"] = "@conditional.outer",
-                        ["ii"] = "@conditional.inner",
-                        ["al"] = "@loop.outer",
-                        ["il"] = "@loop.inner",
-                        ["at"] = "@comment.outer",
-                        ["ap"] = "@parameter.outer",
-                        ["ip"] = "@parameter.inner",
-                        ["ar"] = "@return.outer",
-                        ["ir"] = "@return.inner",
-                    },
-                },
+            select = {
+                lookahead = true, -- Jump forward to textobj
             },
         },
-        config = function(_, opts) require("nvim-treesitter.configs").setup(opts) end,
     },
 }
