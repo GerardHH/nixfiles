@@ -34,6 +34,9 @@ command -v podman >/dev/null || die "podman missing: sudo apt install --yes podm
 
 WORKSPACE="$(realpath -- "${1:-${PWD}}")"
 
+STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/nix-devcontainer/${WORKSPACE//\//-}"
+mkdir --parents "${STATE_DIR}/bash"
+
 default_options=(
     --docker-path podman
     --workspace-folder "${WORKSPACE}"
@@ -44,8 +47,16 @@ devcontainer up \
     --mount "type=bind,source=/etc/nix,target=/etc/nix" \
     --mount "type=bind,source=/nix,target=/nix" \
     --mount "type=bind,source=${NIXFILES_REPO_DIR},target=/home/ubuntu/nixfiles" \
+    --mount "type=bind,source=${STATE_DIR}/bash,target=/home/ubuntu/.local/state/bash" \
     --remove-existing-container
 
+# Podman creates missing parents of a mount target as root; hand them back.
+podman exec \
+    --user root \
+    "$(podman ps --quiet --filter "label=devcontainer.local_folder=${WORKSPACE}")" \
+    chown ubuntu:ubuntu /home/ubuntu/.local /home/ubuntu/.local/state
+
+# Bootstrap nixfiles environment before dropping in.
 #shellcheck disable=SC2088
 devcontainer exec \
     "${default_options[@]}" \

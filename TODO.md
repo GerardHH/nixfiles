@@ -67,16 +67,6 @@ bash, alacritty). If not done yet, clean up the running tmux:
 `rm --recursive --force ~/.tmux/plugins/vim-tmux-navigator`, and `:Lazy clean`
 in nvim.
 
-### 2026-10-03 · Container bash history across rebuilds
-
-Move `HISTFILE` to `${XDG_STATE_HOME:-$HOME/.local/state}/bash/history`
-(create the directory, and move the host's `~/.bash_history` there once), and
-let `bin/nix-devcontainer.sh` bind-mount
-`~/.local/state/nix-devcontainer/<workspace>/bash` onto the container's
-`~/.local/state/bash`. Histories stay separate: the host, and one per
-workspace. Consider `PROMPT_COMMAND+=('history -a')` so commands are saved
-immediately.
-
 ### 2026-10-03 · fzf bash completion after any command
 
 `**<Tab>` only triggers for commands it knows, e.g. not after
@@ -124,7 +114,7 @@ Needed for work; Claude Code covers it for now. Open question: deliver the
 token through `nixfiles-secrets` (sops) so a container rebuild costs
 nothing. Likely shape: a token on the host from sops, passed in by
 `bin/nix-devcontainer.sh` as an environment variable or bind-mounted file,
-the same mechanism as the "Container bash history" item.
+like the per-workspace bash history mount there.
 
 ### 2026-10-03 · nvim plugins through nix
 
