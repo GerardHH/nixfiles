@@ -57,11 +57,6 @@ out of this repo; facts only.
 
 ## Next
 
-### 2026-10-03 · Claude Code: vi keybindings
-
-Try `/vim` in the prompt; if it sticks, set `editorMode` in
-`config/claude/settings.json`.
-
 ### 2026-10-03 · Key layers: finish up
 
 Ctrl for the program (nvim, fzf), Alt for tmux, Super for a future window
