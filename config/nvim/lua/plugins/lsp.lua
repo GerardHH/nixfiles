@@ -89,6 +89,21 @@ return {
                     local client = assert(vim.lsp.get_client_by_id(args.data.client_id))
                     if client:supports_method("textDocument/documentSymbol") then
                         require("nvim-navic").attach(client, args.buf)
+
+                        if client:supports_method("textDocument/documentHighlight") then
+                            local highlight =
+                                vim.api.nvim_create_augroup("UserLspHighlight" .. args.buf, { clear = true })
+                            vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+                                group = highlight,
+                                buffer = args.buf,
+                                callback = function() vim.lsp.buf.document_highlight() end,
+                            })
+                            vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+                                group = highlight,
+                                buffer = args.buf,
+                                callback = function() vim.lsp.buf.clear_references() end,
+                            })
+                        end
                     end
                 end,
             })

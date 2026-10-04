@@ -12,7 +12,6 @@ return {
                 flash = true,
                 gitsigns = true,
                 hop = true,
-                illuminate = true,
                 indent_blankline = { enabled = true, colored_indent_levels = true, scope_color = "lavender" },
                 lsp_saga = true,
                 lsp_trouble = true,

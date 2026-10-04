@@ -57,15 +57,6 @@ out of this repo; facts only.
 
 ## Next
 
-### 2026-10-03 · Key layers: finish up
-
-Ctrl for the program (nvim, fzf), Alt for tmux, Super for a future window
-manager. Committed in ccfe283. Left: check for remaining Alt conflicts (nvim,
-bash, alacritty). If not done yet, clean up the running tmux:
-`for key in C-h C-j C-k C-l 'C-\'; do tmux unbind-key -n "$key"; done`,
-`tmux source-file ~/.config/tmux/tmux.conf`,
-`rm --recursive --force ~/.tmux/plugins/vim-tmux-navigator`, and `:Lazy clean`
-in nvim.
 
 ### 2026-10-03 · fzf bash completion after any command
 

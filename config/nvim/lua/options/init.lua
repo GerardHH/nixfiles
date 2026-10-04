@@ -4,6 +4,7 @@ local opt = vim.opt -- for conciseness
 
 opt.fileencoding = "utf-8" -- the encoding written to a file
 opt.swapfile = false -- turn off swapfile
+opt.updatetime = 250 -- Idle time before CursorHold fires
 
 -- line numbers
 opt.relativenumber = true -- show relative line numbers
