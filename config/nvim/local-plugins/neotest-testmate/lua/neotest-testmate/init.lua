@@ -1,14 +1,18 @@
 -- neotest adapter that runs C++ test executables directly, the way VSCode's
--- C++ TestMate does, instead of through CTest. Test cases are found in the
--- sources with neotest-ctest's tree-sitter queries. The executable for a source
+-- C++ TestMate does, instead of through CTest. The executable for a source
 -- file is the one under the build directories that contains the file's path,
--- which the test macros embed through __FILE__. Only Catch2 is supported so far.
+-- which the test macros embed through __FILE__. Supports Catch2 v2 and v3 and
+-- GoogleTest; each framework's module finds the test cases, builds the
+-- command-line filter and reads the XML report.
 local lib = require("neotest.lib")
 local nio = require("nio")
-local frameworks = require("neotest-ctest.framework")
-local catch2 = require("neotest-ctest.framework.catch2")
 
 local adapter = { name = "neotest-testmate" }
+
+local frameworks = {
+    require("neotest-testmate.catch2"),
+    require("neotest-testmate.gtest"),
+}
 
 local options = {
     -- Directories in a project root that hold build trees, and the names of
@@ -63,9 +67,24 @@ function adapter.is_test_file(path)
     return (name .. "/" .. parent):lower():find("test", 1, true) ~= nil
 end
 
+--- The framework of a test source, by the first of its #includes that one of
+--- them claims.
+local function detect(path)
+    local ok, content = pcall(lib.files.read, path)
+    if not ok then return nil end
+    for header in content:gmatch('#%s*include%s*[<"]([^>"]+)[>"]') do
+        for _, framework in ipairs(frameworks) do
+            for _, pattern in ipairs(framework.headers) do
+                if header:find(pattern) then return framework end
+            end
+        end
+    end
+    return nil
+end
+
 function adapter.discover_positions(path)
-    if frameworks.detect(path) ~= catch2 then return nil end
-    return catch2.parse_positions(path)
+    local framework = detect(path)
+    return framework and framework.parse_positions(path)
 end
 
 --- The most recently built executable in the project's build directories that
@@ -90,20 +109,20 @@ local function find_executable(root, file)
     return newest
 end
 
--- Catch2 test specs treat these characters specially; a backslash makes them literal.
-local function catch2_filter(name) return (name:gsub('[\\,%[%]%*~"]', "\\%0")) end
-
 function adapter.build_spec(args)
     local tree = args.tree
     local position = tree:data()
     if position.type == "dir" then return nil end
 
-    local filters = {}
+    local tests = {}
     for _, node in tree:iter_nodes() do
-        if node:data().type == "test" then table.insert(filters, catch2_filter(node:data().name)) end
+        if node:data().type == "test" then table.insert(tests, node:data()) end
     end
     -- Without filters the executable would run every test it has.
-    if #filters == 0 then return nil end
+    if #tests == 0 then return nil end
+
+    local framework = detect(position.path)
+    if not framework then error(("No supported test framework included in %s"):format(position.path)) end
 
     local root = adapter.root(vim.fs.dirname(position.path))
     local executable = root and find_executable(root, position.path)
@@ -114,13 +133,12 @@ function adapter.build_spec(args)
     end
 
     local report = nio.fn.tempname()
-    -- One argument: Catch2 v2 joins separate ones with spaces into a single name.
-    local arguments = { table.concat(filters, ","), "--reporter", "xml", "--out", report }
+    local arguments = framework.arguments(tests, report)
     local cwd = vim.fs.dirname(executable)
     local spec = {
         command = vim.list_extend({ executable }, arguments),
         cwd = cwd,
-        context = { report = report, debug = args.strategy == "dap" },
+        context = { framework = framework.name, report = report, debug = args.strategy == "dap" },
     }
     if spec.context.debug then
         spec.strategy = {
@@ -135,99 +153,9 @@ function adapter.build_spec(args)
     return spec
 end
 
-local function as_list(value)
-    if value == nil then return {} end
-    return vim.islist(value) and value or { value }
-end
-
-local function text(value)
-    if type(value) == "table" then value = value[1] end
-    return vim.trim(value or "")
-end
-
--- Failed assertions, exceptions and fatal signals anywhere in a test case,
--- sections included, as { file, line, message }.
-local function failures(element, found)
-    found = found or {}
-    for _, expression in ipairs(as_list(element.Expression)) do
-        if expression._attr.success == "false" then
-            local message = ("%s( %s )"):format(expression._attr.type, text(expression.Original))
-            local expanded = text(expression.Expanded)
-            if expanded ~= text(expression.Original) then message = message .. "\nwith expansion: " .. expanded end
-            table.insert(
-                found,
-                { file = expression._attr.filename, line = tonumber(expression._attr.line), message = message }
-            )
-        end
-    end
-    for _, kind in ipairs({ "Exception", "FatalErrorCondition", "Failure" }) do
-        for _, failure in ipairs(as_list(element[kind])) do
-            local attr = failure._attr or {}
-            table.insert(
-                found,
-                { file = attr.filename, line = tonumber(attr.line), message = kind .. ": " .. text(failure) }
-            )
-        end
-    end
-    for _, section in ipairs(as_list(element.Section)) do
-        failures(section, found)
-    end
-    return found
-end
-
--- Catch2 writes `>` unescaped in attribute values, e.g. a test case named
--- "a -> b", and neotest's XML parser ends a tag at the first `>`: the test
--- case loses its attributes and turns into a string. Escape `>` inside quoted
--- attribute values; the parser turns `&gt;` back into `>`. Text never holds a
--- raw `<`, Catch2 escapes it, so each `<` starts a tag.
-local function escape_gt_in_attributes(report)
-    local parts, pos = {}, 1
-    local in_tag, in_quote = false, false
-    while true do
-        local at = report:find('[<>"]', pos)
-        if not at then break end
-        local char = report:sub(at, at)
-        if char == "<" then
-            in_tag = true
-        elseif char == '"' then
-            -- Quotes in text, such as in <Original>, start no attribute value.
-            in_quote = in_tag and not in_quote
-        elseif in_quote then
-            char = "&gt;"
-        else
-            in_tag = false
-        end
-        table.insert(parts, report:sub(pos, at - 1))
-        table.insert(parts, char)
-        pos = at + 1
-    end
-    table.insert(parts, report:sub(pos))
-    return table.concat(parts)
-end
-
--- Test cases in a Catch2 v2 (<Catch><Group>) or v3 (<Catch2TestRun>) report.
-local function read_report(path)
-    local ok, parsed = pcall(function() return lib.xml.parse(escape_gt_in_attributes(lib.files.read(path))) end)
-    if not ok or type(parsed) ~= "table" then return nil end
-    local run = parsed.Catch and parsed.Catch.Group or parsed.Catch2TestRun
-    if not run then return nil end
-    local cases = {}
-    for _, case in ipairs(as_list(run.TestCase)) do
-        -- Skip a test case the parser still mangled instead of failing the
-        -- whole run; its test shows up as "not run".
-        if type(case) == "table" and case._attr then
-            local result = case.OverallResult
-            cases[case._attr.name] = {
-                passed = type(result) == "table" and result._attr ~= nil and result._attr.success == "true",
-                failures = failures(case),
-            }
-        end
-    end
-    return cases
-end
-
 function adapter.results(spec, result, tree)
-    local cases = read_report(spec.context.report)
+    local framework = vim.iter(frameworks):find(function(f) return f.name == spec.context.framework end)
+    local cases = framework.read_report(spec.context.report)
     -- An interrupted debug session leaves no report; keep the previous results.
     if not cases and spec.context.debug then return {} end
 
@@ -242,21 +170,23 @@ function adapter.results(spec, result, tree)
                 status = "failed"
                 short = ("Exited with code %d without writing a complete report"):format(result.code)
             elseif case then
-                status = case.passed and "passed" or "failed"
+                status = case.status
                 local lines = {}
                 for _, failure in ipairs(case.failures) do
-                    table.insert(lines, ("%s:%d: %s"):format(failure.file, failure.line or 0, failure.message))
+                    -- Exceptions outside an assertion can come without a file.
+                    local location = failure.file and ("%s:%d: "):format(failure.file, failure.line or 0) or ""
+                    table.insert(lines, location .. failure.message)
                     if failure.line and failure.file == position.path then
                         table.insert(errors, { line = failure.line - 1, message = failure.message })
                     end
                 end
-                short = #lines > 0 and table.concat(lines, "\n") or status
+                short = #lines > 0 and table.concat(lines, "\n") or case.message or status
             end
             table.insert(
                 summary,
                 ("%s %s"):format(status == "passed" and "✔" or status == "failed" and "✘" or "-", position.name)
             )
-            if status == "failed" then table.insert(summary, (short:gsub("\n", "\n    "):gsub("^", "    "))) end
+            if status ~= "passed" then table.insert(summary, (short:gsub("\n", "\n    "):gsub("^", "    "))) end
             results[position.id] = { status = status, short = short, errors = errors, output = summary_path }
         end
     end
