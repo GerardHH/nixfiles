@@ -1,5 +1,9 @@
 # nixfiles
 
+## Key bindings
+
+Keep to the key layers in `README.md` when adding or changing key bindings.
+
 ## Todo list
 
 @TODO.md

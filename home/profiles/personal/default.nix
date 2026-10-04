@@ -6,6 +6,7 @@
         ../../modules/claude.nix
         ../../modules/clipboard.nix
         ../../modules/devcontainer.nix
+        ../../modules/gnome-keys.nix
         ../../modules/graphical-session.nix
         ./secrets.nix
         ./ssh.nix

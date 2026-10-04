@@ -93,3 +93,25 @@ osc52 = "OnlyCopy"
 key = "Return"
 mods = "Shift"
 chars = "\u001b[13;2u"
+
+# Ctrl-Shift-h/j/k/l normally send the same byte as Ctrl-h/j/k/l.
+# ESC [ <code> ; 6 u = the lowercase letter's key code with modifier 6 (Ctrl+Shift).
+[[keyboard.bindings]]
+key = "H"
+mods = "Control|Shift"
+chars = "\u001b[104;6u"
+
+[[keyboard.bindings]]
+key = "J"
+mods = "Control|Shift"
+chars = "\u001b[106;6u"
+
+[[keyboard.bindings]]
+key = "K"
+mods = "Control|Shift"
+chars = "\u001b[107;6u"
+
+[[keyboard.bindings]]
+key = "L"
+mods = "Control|Shift"
+chars = "\u001b[108;6u"
