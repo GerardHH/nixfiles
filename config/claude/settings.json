@@ -18,8 +18,14 @@
     "defaultMode": "auto"
   },
   "model": "opus",
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "hideVimModeIndicator": true
+  },
   "enabledPlugins": {
-    "lua-lsp@claude-plugins-official": true
+    "lua-lsp@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true
   },
   "sandbox": {
     "enabled": true,
@@ -56,10 +62,5 @@
       "effortLevel": "high"
     }
   },
-  "editorMode": "vim",
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/statusline.sh",
-    "hideVimModeIndicator": true
-  }
+  "editorMode": "vim"
 }
