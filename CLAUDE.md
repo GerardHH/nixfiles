@@ -24,4 +24,6 @@ Keep to the key layers in `README.md` when adding or changing key bindings.
   and keep only what the remaining steps still need. Add facts we learn
   to the step that needs them, correct ones that turn out wrong, and fix
   references to other items when they move.
-- You're not allowed to edit `TODO.md` directly, so please keep a working copy in `/tmp/claude-1000/nixfiles/TODO.md` and allow me to copy it over at the end of a session or if there a important changes.
+- You're not allowed to edit `TODO.md` directly, so please keep a working copy
+  in `/tmp/claude-1000/nixfiles/TODO.md` and allow me to copy it over at the end
+  of a session or if there a important changes.

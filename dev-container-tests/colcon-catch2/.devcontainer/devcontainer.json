@@ -1,16 +1,14 @@
 {
-    "name": "nixfiles-colcon-catch2",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-
-    "containerUser": "ubuntu",
-    "remoteUser": "ubuntu",
-
-    "runArgs": [
-        "--userns=keep-id",
-        "--cap-add=SYS_PTRACE",
-        "--security-opt",
-        "seccomp=unconfined"
-    ]
+  "name": "nixfiles-colcon-catch2",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "containerUser": "ubuntu",
+  "remoteUser": "ubuntu",
+  "runArgs": [
+    "--userns=keep-id",
+    "--cap-add=SYS_PTRACE",
+    "--security-opt",
+    "seccomp=unconfined"
+  ]
 }
