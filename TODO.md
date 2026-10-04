@@ -1,13 +1,13 @@
 # TODO
 
-- **Inbox:** new thoughts, one line each, unsorted. Capture now, sort later.
+- **Inbox:** new thoughts, one bullet each, unsorted. Capture now, sort later.
 - **Now:** what I'm working on. One item, two at most.
 - **Next:** sorted, top first.
 - **Later:** worth keeping, not soon.
 - **Stale:** untouched for more than a month, waiting for my review.
 
 Every item carries the date it last changed: in its heading, or at the
-start of an Inbox line. Bump the date when an item changes. An item older than
+start of an Inbox bullet. Bump the date when an item changes. An item older than
 a month moves to Stale with its date unchanged. When I review it, it goes back
 to another section with today's date, or gets deleted.
 
@@ -15,13 +15,12 @@ Delete an item when it's done; git history keeps it.
 
 ## Inbox
 
-- 2026-10-04 · Formatters for config files (toml, yaml, json, …): which ones, and whether it's worth it.
-- 2026-10-04 · Markdown formatter (README.md, TODO.md, CLAUDE.md).
-
-Facts from this session that may help when you pick them up:
-- **Existing formatters:** stylua (`config/nvim/.stylua.toml`), nixfmt (Nix files use `--indent=4`, which it doesn't pick up by itself), `.clang-format`, and a root `.editorconfig` that sets 4-space indents.
-- **No pre-commit:** the repo has no `.pre-commit-config.yaml`, so nothing runs formatters automatically.
-- **Already hand-formatted:** the README's key-layers table has aligned columns, which a Markdown formatter would rewrite.
+- 2026-10-04 · Code-aware spell checker in nvim. Baseline without installs:
+  `:set spell`, which with treesitter only checks comments and strings.
+  Candidates, all in nixpkgs with an nvim-lspconfig config: codebook
+  (tree-sitter based, splits identifiers like `camelCase`), typos-lsp (list of
+  known misspellings, few false positives), harper (spelling and grammar in
+  comments and Markdown). ltex-ls-plus (LanguageTool) is heavier, on a JRE.
 
 ## Now
 
@@ -96,10 +95,9 @@ Option: vim-tpipeline, which moves nvim's statusline into the tmux status,
 which already sits at the top (`status-position top`). Alternative without
 tmux: lualine as `tabline`/`winbar`, `laststatus=0`, `cmdheight=0`.
 
-### 2026-10-03 · nvim plugins to evaluate
+### 2026-10-04 · nvim plugins to evaluate
 
 - nvim-hlslens: match index next to search results.
-- SchemaStore.nvim: JSON/YAML schemas for the language servers.
 - blink-ripgrep.nvim: blink.cmp source with words from the whole project.
 - treesj: split/join on treesitter nodes; overlaps mini.splitjoin.
 - tiny-inline-diagnostic.nvim: nicer inline diagnostics.

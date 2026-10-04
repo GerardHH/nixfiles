@@ -1,0 +1,6 @@
+{ ... }:
+{
+    languages.editorconfig = {
+        filetypes = [ ];
+    };
+}

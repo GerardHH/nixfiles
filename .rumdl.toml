@@ -1,0 +1,16 @@
+# MD013 (line length): rewrap paragraphs and list items.
+# "normalize" rewraps whole paragraphs, also joining short lines, so
+# the result looks the same however it was typed; "default" would only rewrap
+# paragraphs that have a line over the limit.
+[MD013]
+line-length = 80
+reflow = true
+reflow-mode = "normalize"
+# Table rows and code can't be wrapped, so don't warn about their length.
+tables = false
+code-blocks = false
+
+# MD060 (table format): pad cells so the pipes line up.
+[MD060]
+enabled = true
+style = "aligned"

@@ -6,5 +6,6 @@
             stylua
         ];
         servers = [ "lua_ls" ];
+        formatters = [ "null-ls" ]; # stylua
     };
 }

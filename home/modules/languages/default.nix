@@ -16,12 +16,19 @@ in
     imports = [
         ./bash.nix
         ./c_cpp.nix
+        ./docker.nix
+        ./editorconfig.nix
+        ./git.nix
+        ./json.nix
         ./lua.nix
         ./markdown.nix
         ./nix.nix
         ./node.nix
         ./python.nix
         ./rust.nix
+        ./toml.nix
+        ./xml.nix
+        ./yaml.nix
     ];
 
     options.languages = mkOption {
@@ -67,6 +74,17 @@ in
                             type = types.listOf types.str;
                             default = [ ];
                             description = "vim.lsp.config names to enable for this language.";
+                        };
+
+                        formatters = mkOption {
+                            type = types.listOf types.str;
+                            default = [ ];
+                            description = ''
+                                LSP clients whose formatting runs on save for ${name}: names
+                                from `servers`, or "null-ls" for a formatter that runs through
+                                none-ls. One per file type, so two formatters never take turns
+                                on the same file.
+                            '';
                         };
 
                         filetypes = mkOption {

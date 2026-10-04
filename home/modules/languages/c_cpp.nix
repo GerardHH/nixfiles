@@ -10,6 +10,7 @@
             "clangd"
             "cmake"
         ];
+        formatters = [ "null-ls" ]; # clang-format
         grammars = [
             "c"
             "cpp"

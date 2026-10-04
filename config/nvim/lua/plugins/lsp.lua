@@ -1,5 +1,10 @@
 local languages = require("languages")
 
+local format_on_save = {}
+for _, name in ipairs(languages.formatters or {}) do
+    format_on_save[name] = true
+end
+
 local function server_overrides()
     local nix_flake = vim.env.HOME .. "/nixfiles"
     local nix_hm_config = vim.env.USER == "ubuntu" and "container" or "personal"
@@ -17,6 +22,14 @@ local function server_overrides()
                 "--completion-style=detailed",
                 "--function-arg-placeholders",
                 "--fallback-style=llvm",
+            },
+        },
+        jsonls = {
+            settings = {
+                json = {
+                    schemas = require("schemastore").json.schemas(),
+                    validate = { enable = true },
+                },
             },
         },
         lua_ls = {
@@ -58,6 +71,16 @@ local function server_overrides()
                 },
             },
         },
+        yamlls = {
+            settings = {
+                yaml = {
+                    -- Take the catalog from SchemaStore.nvim,instead of
+                    -- the server downloading schemastore.org's at startup.
+                    schemaStore = { enable = false, url = "" },
+                    schemas = require("schemastore").yaml.schemas(),
+                },
+            },
+        },
     }
 end
 
@@ -68,6 +91,7 @@ return {
         dependencies = {
             "saghen/blink.cmp",
             "SmiteshP/nvim-navic",
+            "b0o/SchemaStore.nvim",
         },
         lazy = true,
         ft = languages.filetypes,
@@ -81,6 +105,13 @@ return {
             { "<leader>vL", "<CMD>checkhealth vim.lsp<CR>", desc = "View connected LS's" },
         },
         init = function()
+            -- `format_on_save = false` in an .editorconfig section skips formatting on
+            -- save for those files, e.g. lazy-lock.json, which lazy.nvim writes itself.
+            -- Registered in init so it exists before the first buffer is read.
+            require("editorconfig").properties.format_on_save = function(bufnr, val)
+                vim.b[bufnr].format_on_save = val ~= "false"
+            end
+
             local group = vim.api.nvim_create_augroup("UserLspAttach", { clear = true })
 
             vim.api.nvim_create_autocmd("LspAttach", {
@@ -104,6 +135,34 @@ return {
                                 callback = function() vim.lsp.buf.clear_references() end,
                             })
                         end
+                    end
+
+                    -- Format on save for all language servers and formatters (if they support it)
+                    if format_on_save[client.name] then
+                        vim.api.nvim_create_autocmd("BufWritePre", {
+                            group = vim.api.nvim_create_augroup("UserLspFormat" .. args.buf, { clear = true }),
+                            buffer = args.buf,
+                            callback = function()
+                                -- Off per file through .editorconfig (see above), or for the
+                                -- whole session with `:let g:format_on_save = v:false`, e.g.
+                                -- in a repo whose JSON/YAML/Markdown nobody formats.
+                                if vim.b[args.buf].format_on_save == false or vim.g.format_on_save == false then
+                                    return
+                                end
+                                -- Skip quitly when no listed client formats this buffer.
+                                -- Some are tricky like that such as lemminx and docker_language_server.
+                                local can_format = vim.tbl_filter(
+                                    function(c) return format_on_save[c.name] == true end,
+                                    vim.lsp.get_clients({ bufnr = args.buf, method = "textDocument/formatting" })
+                                )
+                                if #can_format == 0 then return end
+                                vim.lsp.buf.format({
+                                    bufnr = args.buf,
+                                    filter = function(c) return format_on_save[c.name] == true end,
+                                    timeout_ms = 2000,
+                                })
+                            end,
+                        })
                     end
                 end,
             })
@@ -188,17 +247,6 @@ return {
         lazy = true,
         event = "LspAttach",
         config = function()
-            local lsp_formatting = function(bufnr)
-                vim.lsp.buf.format({
-                    bufnr = bufnr,
-                    filter = function(client)
-                        -- apply whatever logic you want (in this example, we'll only use null-ls)
-                        return client.name == "null-ls"
-                    end,
-                    timeout_ms = 2000,
-                })
-            end
-
             local null_ls = require("null-ls")
 
             local sources = {}
@@ -228,21 +276,9 @@ return {
                 end
             end
 
-            local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
-
-            null_ls.setup({
-                sources = sources,
-                on_attach = function(client, bufnr)
-                    if client:supports_method("textDocument/formatting") then
-                        vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
-                        vim.api.nvim_create_autocmd("BufWritePre", {
-                            group = augroup,
-                            buffer = bufnr,
-                            callback = function() lsp_formatting(bufnr) end,
-                        })
-                    end
-                end,
-            })
+            -- Format on save is set up in nvim-lspconfig's LspAttach autocmd, for
+            -- null-ls and the language servers alike.
+            null_ls.setup({ sources = sources })
         end,
     },
     -- Others

@@ -24,6 +24,13 @@ return {
 
                     if not language or not vim.treesitter.language.add(language) then return end
 
+                    -- vim.treesitter.start turns regex syntax off, so a parser without a
+                    -- highlights query leaves the buffer uncolored. Let nbim's own syntax
+                    -- file do the work instead.
+                    if #vim.api.nvim_get_runtime_file("queries/" .. language .. "/highlights.scm", true) == 0 then
+                        return
+                    end
+
                     vim.treesitter.start(args.buf, language)
 
                     if vim.treesitter.query.get(language, "indents") then

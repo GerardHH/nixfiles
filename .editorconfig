@@ -3,3 +3,17 @@ root = true
 [*]
 indent_style = space
 indent_size = 4
+
+[*.{json,yaml,yml}]
+indent_size = 2
+
+[*.md]
+indent_size = 2
+
+# Disable format on save for files that would get ruined
+[config/nvim/lazy-lock.json]
+format_on_save = false
+
+# sops-envrypted
+[secrets/**]
+format_on_save = false
