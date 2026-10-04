@@ -15,6 +15,14 @@ Delete an item when it's done; git history keeps it.
 
 ## Inbox
 
+- 2026-10-04 · Formatters for config files (toml, yaml, json, …): which ones, and whether it's worth it.
+- 2026-10-04 · Markdown formatter (README.md, TODO.md, CLAUDE.md).
+
+Facts from this session that may help when you pick them up:
+- **Existing formatters:** stylua (`config/nvim/.stylua.toml`), nixfmt (Nix files use `--indent=4`, which it doesn't pick up by itself), `.clang-format`, and a root `.editorconfig` that sets 4-space indents.
+- **No pre-commit:** the repo has no `.pre-commit-config.yaml`, so nothing runs formatters automatically.
+- **Already hand-formatted:** the README's key-layers table has aligned columns, which a Markdown formatter would rewrite.
+
 ## Now
 
 ### 2026-10-03 · neotest in a container with colcon/ROS 2
@@ -57,14 +65,13 @@ out of this repo; facts only.
 
 ## Next
 
+## Later
 
 ### 2026-10-03 · fzf bash completion after any command
 
 `**<Tab>` only triggers for commands it knows, e.g. not after
 `tmux source-file`. Goal: path completion after any command, and bash
 completion for tmux.
-
-## Later
 
 ### 2026-10-03 · `<leader>ba` fails on terminal buffers
 
