@@ -17,3 +17,9 @@ TEST_CASE("to_upper converts ASCII letters", "[to_upper]") {
         text::to_upper("Hello, World!"); // breakpoint target
     REQUIRE(result == "HELLO, WORLD!");
 }
+
+// The ">" lands unescaped in Catch2's XML report, which used to break the
+// report parsing in neotest-testmate. Keeps that case in the test bed.
+TEST_CASE("to_upper -> leaves digits alone", "[to_upper]") {
+    REQUIRE(text::to_upper("a1") == "A1");
+}

@@ -175,18 +175,53 @@ local function failures(element, found)
     return found
 end
 
+-- Catch2 writes `>` unescaped in attribute values, e.g. a test case named
+-- "a -> b", and neotest's XML parser ends a tag at the first `>`: the test
+-- case loses its attributes and turns into a string. Escape `>` inside quoted
+-- attribute values; the parser turns `&gt;` back into `>`. Text never holds a
+-- raw `<`, Catch2 escapes it, so each `<` starts a tag.
+local function escape_gt_in_attributes(report)
+    local parts, pos = {}, 1
+    local in_tag, in_quote = false, false
+    while true do
+        local at = report:find('[<>"]', pos)
+        if not at then break end
+        local char = report:sub(at, at)
+        if char == "<" then
+            in_tag = true
+        elseif char == '"' then
+            -- Quotes in text, such as in <Original>, start no attribute value.
+            in_quote = in_tag and not in_quote
+        elseif in_quote then
+            char = "&gt;"
+        else
+            in_tag = false
+        end
+        table.insert(parts, report:sub(pos, at - 1))
+        table.insert(parts, char)
+        pos = at + 1
+    end
+    table.insert(parts, report:sub(pos))
+    return table.concat(parts)
+end
+
 -- Test cases in a Catch2 v2 (<Catch><Group>) or v3 (<Catch2TestRun>) report.
 local function read_report(path)
-    local ok, parsed = pcall(function() return lib.xml.parse(lib.files.read(path)) end)
+    local ok, parsed = pcall(function() return lib.xml.parse(escape_gt_in_attributes(lib.files.read(path))) end)
     if not ok or type(parsed) ~= "table" then return nil end
     local run = parsed.Catch and parsed.Catch.Group or parsed.Catch2TestRun
     if not run then return nil end
     local cases = {}
     for _, case in ipairs(as_list(run.TestCase)) do
-        cases[case._attr.name] = {
-            passed = case.OverallResult and case.OverallResult._attr.success == "true",
-            failures = failures(case),
-        }
+        -- Skip a test case the parser still mangled instead of failing the
+        -- whole run; its test shows up as "not run".
+        if type(case) == "table" and case._attr then
+            local result = case.OverallResult
+            cases[case._attr.name] = {
+                passed = type(result) == "table" and result._attr ~= nil and result._attr.success == "true",
+                failures = failures(case),
+            }
+        end
     end
     return cases
 end
