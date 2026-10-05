@@ -15,6 +15,23 @@ Delete an item when it's done; git history keeps it.
 
 ## Inbox
 
+- 2026-10-05 · Opening a file with merge conflicts errors in nvim:
+  `git-conflict.lua:655: attempt to call field 'disable' (a nil value)`, from
+  the `GitConflictDetected` autocmd. git-conflict.nvim (a1badcd) still calls
+  `vim.diagnostic.disable(bufnr)`, which nvim 0.12 removed; our
+  `disable_diagnostics = true` in `config/nvim/lua/plugins/git.lua` triggers
+  it. Resolving a conflict (`<leader>gct`, then saving) fails too, at
+  `git-conflict.lua:665` in `GitConflictResolved`: `enable: expected boolean,
+  got number`, as it calls the old `vim.diagnostic.enable(bufnr)`. It fires
+  once from `choose` and again from the later re-parse (`process`, line 673).
+  Goal beyond the error: hide errors and warnings while a buffer has conflict
+  markers, as they clutter the conflict and make it harder to read; the
+  markers alone already break the parse, so the diagnostics are mostly noise.
+  Fix: set `disable_diagnostics = false` and do it ourselves from those two
+  autocmds with `vim.diagnostic.enable(false, { bufnr = … })` and
+  `vim.diagnostic.enable(true, { bufnr = … })`, or find a maintained fork.
+  Check that diagnostics come back after the last conflict is resolved.
+
 ## Now
 
 ### 2026-10-04 · neotest in a container with colcon/ROS 2
