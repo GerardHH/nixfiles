@@ -31,6 +31,15 @@ Delete an item when it's done; git history keeps it.
   autocmds with `vim.diagnostic.enable(false, { bufnr = … })` and
   `vim.diagnostic.enable(true, { bufnr = … })`, or find a maintained fork.
   Check that diagnostics come back after the last conflict is resolved.
+- 2026-10-06 · nixd completion and hover docs for our own options, such as
+  `languages.<name>.packages` from `home/modules/languages/default.nix`.
+  Likely set up already: `config/nvim/lua/plugins/lsp.lua` points nixd's
+  `options.home-manager` at `homeConfigurations.<personal|container>.options`
+  of `~/nixfiles`, which holds our options next to home-manager's. Check
+  whether it works in e.g. `home/modules/languages/nix.nix`, and whether the
+  `attrsOf submodule` under `languages` gets completion. If not, see
+  `:LspLog`, and whether files outside the configuration's entry point need
+  their own options expression.
 
 ## Now
 
