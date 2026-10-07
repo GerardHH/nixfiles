@@ -125,16 +125,39 @@ and so matches `TEST` in `TEST_CASE`, before treesitter can tell it isn't a
 comment. The leftover remnants hint at a glyph that nvim and the terminal draw
 at different widths (the container forces `TERM=xterm-256color`).
 
-### 2026-10-03 · nvim plugins through nix
+### 2026-10-07 · nvim plugins through nix
 
-Install plugins from nixpkgs-unstable instead of lazy.nvim's git clones; maybe
-some config too, but keep the config in Lua files, not Lua in nix strings.
-nixpkgs' nvim-treesitter already follows `main`.
+Install plugins from nixpkgs-unstable instead of lazy.nvim's git clones, and
+keep lazy.nvim and the per-topic specs in `config/nvim/lua/plugins/` as they
+are. Plan: `home/modules/nvim.nix` builds a `linkFarm` keyed by lazy's plugin
+name (repo basename or `name`: `catppuccin`, `blink.cmp`; the nixpkgs attrs
+differ: `catppuccin-nvim`, `blink-cmp`), next to `NVIM_NIX_RUNTIME`. `init.lua`
+points lazy's `dev = { path, patterns = { "" }, fallback = true }` at it, so
+plugins not in nix yet still clone. Split: nix decides what exists (plugins,
+store paths, per-profile flags, via the generated `nix_languages.lua`); Lua
+keeps all behaviour, simple opts too. Language plugins (rustaceanvim,
+SchemaStore.nvim) could go in `languages.<name>.plugins`. Drop `build` in
+`blink.cmp.lua` and the rust toolchain in `nvim.nix`. `neotest-testmate` stays
+a `dir =` plugin. Alternatives: nixCats-nvim (the same idea as a framework),
+lz.n (only if lazy.nvim goes), nixvim/nvf (config in nix: no). nixpkgs'
+nvim-treesitter already follows `main`.
 
-### 2026-10-03 · tmux plugins and config through nix
+### 2026-10-07 · tmux plugins through nix
 
-Replace tpm (`~/.tmux/plugins`) with nix-installed plugins; the config is small
-enough to move into nix as well.
+Replace tpm (`~/.tmux/plugins`) with nix-installed plugins, with the same split
+as the nvim item: `config/tmux/tmux.conf` stays a linked file (all `@options`
+and behaviour, reloadable with `source-file`). Nix writes one
+`run-shell <plugin>.rtp` line per plugin to
+`~/.local/share/tmux-nix/plugins.conf`, which `tmux.conf` sources with
+`source-file -q` where tpm's `run` is now. Not home-manager's `programs.tmux`:
+config in nix strings, tmux-sensible on top unless `sensibleOnTop = false`, and
+its `tmux.conf` clashes with the linked `config/tmux` directory. nixpkgs has
+`tmuxPlugins.tmux-which-key` (pyyaml wrapped in; our
+`@tmux-which-key-xdg-enable` already keeps its generated `init.tmux` out of the
+plugin dir). It has no dreamsofcode-io/catppuccin-tmux: package the fork with
+`mkTmuxPlugin` (`rtpFilePath = "catppuccin.tmux"`; it only reads its own dir),
+or move to `tmuxPlugins.catppuccin` (official v2: `@catppuccin_flavor`, status
+line set up by hand).
 
 ## Later
 
