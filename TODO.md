@@ -40,6 +40,19 @@ Delete an item when it's done; git history keeps it.
   `attrsOf submodule` under `languages` gets completion. If not, see
   `:LspLog`, and whether files outside the configuration's entry point need
   their own options expression.
+- 2026-10-08 · Log podman in to the work registry automatically, so pulls in
+  `bin/nix-devcontainer.sh` don't need a manual `podman login`. Rootless
+  podman keeps logins in `$XDG_RUNTIME_DIR/containers/auth.json` (tmpfs), so
+  they're gone after a reboot. The work profile already has the credentials
+  as sops secrets (`artifactory-machine`, `-username`, `-password` in
+  `home/profiles/lely/artifactory.nix`), so no new secret is needed if the
+  registry is that Artifactory. Options: a `credHelpers` entry in
+  `~/.config/containers/auth.json` naming a small `docker-credential-<name>`
+  script that prints the sops secrets on demand (nothing stored, podman asks
+  when needed); or a systemd user unit / activation step running
+  `podman login --authfile … --password-stdin`. A sops template can't write
+  `auth.json` itself, as its `auth` field is base64 of `user:password`.
+  Check first which registry the work images come from.
 
 ## Now
 
