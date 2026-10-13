@@ -263,12 +263,32 @@ in comments and Markdown). ltex-ls-plus (LanguageTool) is heavier, on a JRE.
 - TUIOS: window manager inside the terminal.
 - superfile: file manager; compare with yazi, which is in use now.
 
-### 2026-10-03 · nvim statusline at the top
+### 2026-10-13 · Merge nvim's statusline into the tmux status
 
-The empty line under the statusline is the command line (`cmdheight`). Option:
-vim-tpipeline, which moves nvim's statusline into the tmux status, which already
-sits at the top (`status-position top`). Alternative without tmux: lualine as
-`tabline`/`winbar`, `laststatus=0`, `cmdheight=0`.
+Show nvim's statusline (lualine, `config/nvim/lua/plugins/lualine.lua`) in the
+tmux status, which already sits at the top (`status-position top` in
+`config/tmux/tmux.conf`), so nvim needs no status line of its own. The empty
+line under nvim's statusline is the command line; `cmdheight=0` hides it with
+any option below. Options:
+
+- vim-tpipeline: evaluates the current window's `statusline` (lualine works,
+  nvim-recorder's slots in it too) and writes it into the tmux status, then
+  sets `laststatus=0`. Needs `focus-events on`. Its autoembed takes over
+  `status-left`/`status-right`, which catppuccin-tmux fills now; else
+  `g:tpipeline_autoembed = 0` and put its `#(cat …vimbridge)` in our own
+  status format. Splits lose their own status line (lualine has no
+  `globalstatus` now); a `winbar` with the file name covers that. Check what
+  the status shows when the focus moves to a pane without nvim.
+- Own bridge, no plugin: autocmds (`ModeChanged`, `BufEnter`,
+  `DiagnosticChanged`, …) run `tmux set-option -p @nvim_mode …` for
+  `$TMUX_PANE`, the status format shows `#{@nvim_mode}` in tmux's own styles,
+  and `VimLeave` unsets them. Full control, but each field built by hand.
+- Terminal title: nvim's `title`/`titlestring` sets the pane title, which the
+  status shows with `#{pane_title}`. Plain text, no colours; least work.
+- Without tmux: lualine as `tabline`/`winbar`, `laststatus=0`,
+  `cmdheight=0`. At the top too, but beside the tmux status, not merged.
+- Matching only, not merging: tmuxline.vim generates a tmux status in the
+  statusline's colours; catppuccin on both sides already gives that.
 
 ### 2026-10-03 · Window manager: noctalia
 
