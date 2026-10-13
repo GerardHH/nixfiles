@@ -11,4 +11,4 @@ $ apt_autoremove: echo "sudo apt autoremove --yes"
 @ apt
 
 # Update system
-<apt_update> && <apt_upgrade> && <apt_autoremove> && nix_update.sh
+<apt_update> && <apt_upgrade> && <apt_autoremove> && nix-update.sh
