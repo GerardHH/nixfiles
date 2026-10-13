@@ -53,6 +53,41 @@ Delete an item when it's done; git history keeps it.
   `podman login --authfile … --password-stdin`. A sops template can't write
   `auth.json` itself, as its `auth` field is base64 of `user:password`.
   Check first which registry the work images come from.
+- 2026-10-13 · Smoke test after `bin/nix-update.sh`: one script with a
+  section per program, each failing loudly when a nixpkgs bump breaks our
+  config. Open: a separate `bin/` script or a step at the end of
+  `nix-update.sh`; run in the container too (skip what the profile lacks).
+  Sections, most valuable first:
+  - nvim: `nvim --headless`, open a sample file per language, fail on startup
+    errors (`v:errmsg`, `:messages`), lazy.nvim plugins that failed to load,
+    LSP clients that didn't attach (covers `languages.<name>.packages`;
+    `--version` on each as a fallback), and errors from `:checkhealth`. It
+    should catch the git-conflict.nvim break above (nvim 0.12 removed
+    `vim.diagnostic.disable`), which needs a file with conflict markers. The
+    headless neotest harness (Now, step 1) could share the setup.
+  - bash: `bash --login -i -c exit` with empty stderr. Covers the
+    `config/bashrc` integrations: navi, zoxide, oh-my-posh (`theme.toml`),
+    carapace, bash-completion, `fzf/fzf.sh`, fzf-tab-completion.
+  - tmux: `tmux -L smoketest new-session -d`, check `show-messages` for config
+    errors, then `kill-server`. Covers tpm plugins (tmux-which-key needs
+    pyyaml), and the nix-installed ones once "tmux plugins through nix" lands.
+  - Other profiles: `nix build --dry-run` of
+    `homeConfigurations.<profile>.activationPackage` for each profile, as
+    `nix-update.sh` only builds the active one. Flake `checks` (none yet)
+    would be the natural home.
+  - Links and secrets: no dangling links under `~/.ssh` (sops-nix failed to
+    decrypt), `~/.config` or `~/.claude` (a `link "config/…"` target moved);
+    `ssh -G <host>` parses the generated config.
+  - git: `git config --list` parses (lely guard include too);
+    `git -c core.pager=delta log -p -1 | cat` runs delta with our config.
+    lazygit can't check its config headless; `--version` only.
+  - Claude Code: `jq empty` on `settings.json` and `keybindings.json`; piping
+    `{"vim":{"mode":"INSERT"}}` into `statusline.sh` prints `-- INSERT --`.
+  - devcontainer: `devcontainer --version` (the docker → `emptyDirectory`
+    override in `devcontainer.nix` is fragile across bumps).
+  - alacritty (personal, lely): the nixGL wrapper is the fragile part, and
+    `--version` doesn't touch GL; `alacritty -e true` in the graphical
+    session.
 
 ## Now
 
