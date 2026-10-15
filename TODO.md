@@ -173,22 +173,40 @@ and so matches `TEST` in `TEST_CASE`, before treesitter can tell it isn't a
 comment. The leftover remnants hint at a glyph that nvim and the terminal draw
 at different widths (the container forces `TERM=xterm-256color`).
 
-### 2026-10-07 · nvim plugins through nix
+### 2026-10-15 · nvim plugins through nix
 
-Install plugins from nixpkgs-unstable instead of lazy.nvim's git clones, and
-keep lazy.nvim and the per-topic specs in `config/nvim/lua/plugins/` as they
-are. Plan: `home/modules/nvim.nix` builds a `linkFarm` keyed by lazy's plugin
-name (repo basename or `name`: `catppuccin`, `blink.cmp`; the nixpkgs attrs
-differ: `catppuccin-nvim`, `blink-cmp`), next to `NVIM_NIX_RUNTIME`. `init.lua`
-points lazy's `dev = { path, patterns = { "" }, fallback = true }` at it, so
-plugins not in nix yet still clone. Split: nix decides what exists (plugins,
-store paths, per-profile flags, via the generated `nix_languages.lua`); Lua
-keeps all behaviour, simple opts too. Language plugins (rustaceanvim,
+Install plugins from nixpkgs-unstable instead of lazy.nvim's git clones.
+Either way: nix decides what exists (plugins, store paths, per-profile flags,
+via the generated `nix_languages.lua`); Lua keeps all behaviour, simple opts
+too, and stays a linked `config/nvim`. Language plugins (rustaceanvim,
 SchemaStore.nvim) could go in `languages.<name>.plugins`. Drop `build` in
-`blink.cmp.lua` and the rust toolchain in `nvim.nix`. `neotest-testmate` stays
-a `dir =` plugin. Alternatives: nixCats-nvim (the same idea as a framework),
-lz.n (only if lazy.nvim goes), nixvim/nvf (config in nix: no). nixpkgs'
-nvim-treesitter already follows `main`.
+`blink.cmp.lua` and the rust toolchain in `nvim.nix`. nixpkgs'
+nvim-treesitter already follows `main`. Not nixvim/nvf (config in nix);
+nixCats-nvim is the same idea as a framework.
+
+1. **Decide first: keep lazy.nvim, or drop it in the same move.** Once nix
+   installs the plugins, lazy.nvim mostly just loads them. Dropping it can
+   also be split off into its own item, but decide here, before building
+   anything lazy-specific.
+   - **With lazy.nvim:** keep the per-topic specs in
+     `config/nvim/lua/plugins/`. `home/modules/nvim.nix` builds a `linkFarm`
+     keyed by lazy's plugin name (repo basename or `name`: `catppuccin`,
+     `blink.cmp`; the nixpkgs attrs differ: `catppuccin-nvim`, `blink-cmp`),
+     next to `NVIM_NIX_RUNTIME`. `init.lua` points lazy's
+     `dev = { path, patterns = { "" }, fallback = true }` at it, so plugins
+     not in nix yet still clone. `neotest-testmate` stays a `dir =` plugin.
+   - **Without lazy.nvim:** nix puts its plugins on the packpath
+     (`pack/nix/{start,opt}`), and plugins not in nix come from nvim 0.12's
+     own `vim.pack`. Move to nvim's standard layout: `plugin/` for setup,
+     `lua/` for modules, `lsp/<server>.lua` for server configs,
+     `after/ftplugin/<ft>.lua` per filetype. Open: start LSP from
+     `after/ftplugin` per filetype, or generically with `vim.lsp.enable` over
+     the servers in `nix_languages.lua`. Lazy-loading by hand where it
+     matters (`opt` + `packadd` on an event or key; lz.n if that grows).
+     What the lazy specs do now (`keys`, `opts`, `dependencies`, `ft`/`cmd`
+     triggers) moves into plain Lua. The language support in
+     `home/modules/languages/` (`languages.<name>.packages`, the generated
+     manifest, `NVIM_NIX_RUNTIME`) changes with it.
 
 ### 2026-10-07 · tmux plugins through nix
 
