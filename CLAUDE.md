@@ -12,7 +12,7 @@ Keep to the key layers in `README.md` when adding or changing key bindings.
 
 - At the start of a session where I don't bring a task, give a short summary
   of Now and the top of Next, and ask what to pick up.
-- At the start of every session, move items dated more than a month ago to
+- At the start of every session, move items dated more than six months ago to
   Stale in the working copy and list them in one line. Don't ask me about
   them unless I want to review Stale.
 - When I bring up a new idea or something unrelated mid-task, add it to Inbox

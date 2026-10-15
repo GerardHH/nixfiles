@@ -4,11 +4,11 @@
 - **Now:** what I'm working on. One item, two at most.
 - **Next:** sorted, top first.
 - **Later:** worth keeping, not soon.
-- **Stale:** untouched for more than a month, waiting for my review.
+- **Stale:** untouched for more than six months, waiting for my review.
 
 Every item carries the date it last changed: in its heading, or at the start of
-an Inbox bullet. Bump the date when an item changes. An item older than a month
-moves to Stale with its date unchanged. When I review it, it goes back to
+an Inbox bullet. Bump the date when an item changes. An item older than six
+months moves to Stale with its date unchanged. When I review it, it goes back to
 another section with today's date, or gets deleted.
 
 Delete an item when it's done; git history keeps it.
