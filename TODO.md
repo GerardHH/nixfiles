@@ -53,7 +53,7 @@ Delete an item when it's done; git history keeps it.
   `podman login --authfile … --password-stdin`. A sops template can't write
   `auth.json` itself, as its `auth` field is base64 of `user:password`.
   Check first which registry the work images come from.
-- 2026-10-13 · Smoke test after `bin/nix-update.sh`: one script with a
+- 2026-10-15 · Smoke test after `bin/nix-update.sh`: one script with a
   section per program, each failing loudly when a nixpkgs bump breaks our
   config. Open: a separate `bin/` script or a step at the end of
   `nix-update.sh`; run in the container too (skip what the profile lacks).
@@ -64,7 +64,8 @@ Delete an item when it's done; git history keeps it.
     `--version` on each as a fallback), and errors from `:checkhealth`. It
     should catch the git-conflict.nvim break above (nvim 0.12 removed
     `vim.diagnostic.disable`), which needs a file with conflict markers. The
-    headless neotest harness (Now, step 1) could share the setup.
+    neotest-testmate specs (`tests/` and `Makefile` in its directory) show
+    the setup: headless nvim, sandboxed XDG directories.
   - bash: `bash --login -i -c exit` with empty stderr. Covers the
     `config/bashrc` integrations: navi, zoxide, oh-my-posh (`theme.toml`),
     carapace, bash-completion, `fzf/fzf.sh`, fzf-tab-completion.
@@ -101,30 +102,25 @@ Supports Catch2 v2/v3 and, since 19dd9fd, GTest/GMock (`catch2.lua`,
 `dev-container-tests/colcon-catch2/`, with GTest in `src/toolbox/greeter`. Keep
 work project details out of this repo; facts only.
 
-1. **Catch2 still hangs at work** after 8e88bf4 (which fixed the hang in
-   the test beds: neotest's child nvim lacked neotest-ctest). The work log
-   only says `neotest-testmate doesn't support running files`: `build_spec`
-   returned nil because the file has no test positions, and neotest then
-   leaves it "running" with no process. Likely cause is step 2: verified
-   headless that a Catch2 file including `gmock/gmock.h` first gets no tests.
-   Fix drafted in `/tmp/claude-1000/nixfiles/fix/neotest-testmate/`
-   (`detect()` checks frameworks in order over all includes; specs pass).
-   Next: confirm the work file's include order, apply, check at work. Later,
-   perhaps: a file without tests should fail loudly instead of hanging.
-   neotest skips and notifies when `build_spec` raises an error, but an
-   error aborts a whole suite run, so a no-op spec whose results mark the
-   file skipped may fit better. For DEBUG logging:
-   `:lua require("neotest.logging"):set_level("debug")`. Specs (plenary
-   busted, `make test`), not in the repo yet:
-   `/tmp/claude-1000/nixfiles/config/nvim/local-plugins/neotest-testmate/`
-   (`Makefile`, `.gitignore`, `tests/`). Running the specs in Claude's sandbox
-   needs fixtures on a writable path: neotest's `lib.files.exists` uses
-   `os.rename(path, path)`, which fails on the read-only repo (EROFS), so
-   discovery silently finds nothing. A scratch build of `cmake-catch2` is in
-   `/tmp/claude-1000/nixfiles/fixtures/`.
-2. **Catch2 with GMock:** the fix is in step 1. Still to do: a Catch2 test
-   file that uses GMock (and includes it first) in the test bed, with a
-   spec.
+Specs: `make test` in the adapter's directory (plenary busted; `tests/unit`
+calls the adapter, `tests/integration` runs neotest itself), with
+`DEPS=$HOME/.local/share/nvim/lazy FIXTURES=$HOME/nixfiles/dev-container-tests`.
+In Claude's sandbox the fixtures must be on a writable path: neotest's
+`lib.files.exists` uses `os.rename(path, path)`, which fails on the read-only
+repo (EROFS), so discovery silently finds nothing. A scratch build of
+`cmake-catch2` is in `/tmp/claude-1000/nixfiles/fixtures/` until reboot.
+DEBUG log for a run: `:lua require("neotest.logging"):set_level("debug")`,
+then `~/.local/state/nvim/neotest.log`.
+
+1. **Catch2 with GMock in the test bed:** a Catch2 test file that uses GMock
+   and includes `gmock/gmock.h` before Catch2's header, with a unit spec that
+   it gets its test cases (`detect()` goes by framework order, Catch2 first,
+   over all includes).
+2. **Check a suite run in the container test bed** (`<leader>tp` in
+   `colcon-catch2`): the two `test/main.cpp` files (only
+   `CATCH_CONFIG_MAIN`) come out skipped with "No test cases in file
+   main.cpp", and the rest runs. The specs cover running such a file, not a
+   suite run, as the host can't run the container-built executables.
 3. **Stay in the debugger when a test fails,** as TestMate does
    (`testMate.cpp.debug.breakOnFailure`, on by default). Under the dap
    strategy, add `--break` for Catch2 and `--gtest_break_on_failure` for

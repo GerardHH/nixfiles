@@ -117,6 +117,21 @@ local function find_executable(root, file)
     return newest
 end
 
+--- A spec for a position without test cases, such as a test main.cpp with
+--- only CATCH_CONFIG_MAIN, or a namespace of helpers: it only prints why, and
+--- `results` marks the position skipped. Returning nil instead makes neotest
+--- look for tests to run one by one, find none, and leave the position
+--- running forever; an error would abort a whole suite run, as neotest runs
+--- its files together.
+local function no_tests_spec(position, strategy)
+    local message = ("No test cases in %s %s"):format(position.type, position.name)
+    -- neotest's dap strategy needs a debug configuration, and without one
+    -- reports that the adapter doesn't support it. A debug run is never part
+    -- of a suite run, so an error, shown as a warning, can say why instead.
+    if strategy == "dap" then error(message, 0) end
+    return { command = { "echo", message }, context = { no_tests = message } }
+end
+
 function adapter.build_spec(args)
     local tree = args.tree
     local position = tree:data()
@@ -127,7 +142,7 @@ function adapter.build_spec(args)
         if node:data().type == "test" then table.insert(tests, node:data()) end
     end
     -- Without filters the executable would run every test it has.
-    if #tests == 0 then return nil end
+    if #tests == 0 then return no_tests_spec(position, args.strategy) end
 
     local framework = detect(position.path)
     if not framework then error(("No supported test framework included in %s"):format(position.path)) end
@@ -162,6 +177,15 @@ function adapter.build_spec(args)
 end
 
 function adapter.results(spec, result, tree)
+    -- See no_tests_spec: skipped, with the reason as message and output.
+    if spec.context.no_tests then
+        local results = {}
+        for _, node in tree:iter_nodes() do
+            results[node:data().id] = { status = "skipped", short = spec.context.no_tests, output = result.output }
+        end
+        return results
+    end
+
     local framework = vim.iter(frameworks):find(function(f) return f.name == spec.context.framework end)
     local cases = framework.read_report(spec.context.report)
     -- An interrupted debug session leaves no report; keep the previous results.
