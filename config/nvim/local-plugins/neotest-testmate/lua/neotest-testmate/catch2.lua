@@ -7,7 +7,9 @@ local catch2 = { name = "catch2" }
 -- v2's single header is catch2/catch.hpp, v3 has headers under catch2/.
 catch2.headers = { "^catch2/", "^catch_amalgamated%.hpp$" }
 
-function catch2.parse_positions(path) return require("neotest-ctest.framework.catch2").parse_positions(path) end
+local ctest_catch2 = require("neotest-ctest.framework.catch2")
+
+function catch2.parse_positions(path) return ctest_catch2.parse_positions(path) end
 
 -- Catch2 test specs treat these characters specially; a backslash makes them literal.
 local function filter(name) return (name:gsub('[\\,%[%]%*~"]', "\\%0")) end

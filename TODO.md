@@ -91,7 +91,7 @@ Delete an item when it's done; git history keeps it.
 
 ## Now
 
-### 2026-10-04 · neotest in a container with colcon/ROS 2
+### 2026-10-15 · neotest in a container with colcon/ROS 2
 
 neotest and nvim-dap for the work setup, through
 `config/nvim/local-plugins/neotest-testmate/`: an adapter that runs test
@@ -101,24 +101,30 @@ Supports Catch2 v2/v3 and, since 19dd9fd, GTest/GMock (`catch2.lua`,
 `dev-container-tests/colcon-catch2/`, with GTest in `src/toolbox/greeter`. Keep
 work project details out of this repo; facts only.
 
-1. **Catch2 regression since 19dd9fd:** Catch2 tests run forever, in the
-   container test bed and at work; GTest tests in the test bed work, and
-   `u` (stop) in the summary does nothing. 810e894 is the last good adapter.
-   A headless neotest run (`neotest.setup` + `neotest.run.run(file)`, cwd in
-   `dev-container-tests/cmake-catch2`, scratch scripts in
-   `/tmp/claude-1000/*.lua` until reboot) on the host never finished
-   discovery: the log stops after "started". Calling the adapter's functions
-   directly did work, Catch2 included. Next: run that harness against
-   810e894 to tell a harness problem from the regression. Suspect: the new
-   `detect()` in `init.lua` (`pcall(lib.files.read)` plus an `#include`
-   scan, run in `discover_positions` and `build_spec`), which replaced
-   neotest-ctest's tree-sitter detection.
-2. **Catch2 with GMock:** `detect()` returns the framework of the first
-   matching `#include`, so a Catch2 file that includes `gmock/gmock.h` before
-   `catch2/catch.hpp` is taken for GTest. It worked at work only because the
-   old adapter knew Catch2 alone. Fix: Catch2 wins whenever one of its
-   headers is included. Add a Catch2 test file that uses GMock to the test
-   bed.
+1. **Catch2 still hangs at work** after 8e88bf4 (which fixed the hang in
+   the test beds: neotest's child nvim lacked neotest-ctest). The work log
+   only says `neotest-testmate doesn't support running files`: `build_spec`
+   returned nil because the file has no test positions, and neotest then
+   leaves it "running" with no process. Likely cause is step 2: verified
+   headless that a Catch2 file including `gmock/gmock.h` first gets no tests.
+   Fix drafted in `/tmp/claude-1000/nixfiles/fix/neotest-testmate/`
+   (`detect()` checks frameworks in order over all includes; specs pass).
+   Next: confirm the work file's include order, apply, check at work. Later,
+   perhaps: a file without tests should fail loudly instead of hanging.
+   neotest skips and notifies when `build_spec` raises an error, but an
+   error aborts a whole suite run, so a no-op spec whose results mark the
+   file skipped may fit better. For DEBUG logging:
+   `:lua require("neotest.logging"):set_level("debug")`. Specs (plenary
+   busted, `make test`), not in the repo yet:
+   `/tmp/claude-1000/nixfiles/config/nvim/local-plugins/neotest-testmate/`
+   (`Makefile`, `.gitignore`, `tests/`). Running the specs in Claude's sandbox
+   needs fixtures on a writable path: neotest's `lib.files.exists` uses
+   `os.rename(path, path)`, which fails on the read-only repo (EROFS), so
+   discovery silently finds nothing. A scratch build of `cmake-catch2` is in
+   `/tmp/claude-1000/nixfiles/fixtures/`.
+2. **Catch2 with GMock:** the fix is in step 1. Still to do: a Catch2 test
+   file that uses GMock (and includes it first) in the test bed, with a
+   spec.
 3. **Stay in the debugger when a test fails,** as TestMate does
    (`testMate.cpp.debug.breakOnFailure`, on by default). Under the dap
    strategy, add `--break` for Catch2 and `--gtest_break_on_failure` for
@@ -135,8 +141,10 @@ work project details out of this repo; facts only.
    Not supported: `TYPED_TEST_P`.
 6. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
    Open: own repo, vendoring neotest-ctest's Catch2 query (its only remaining
-   use), README, tests (the headless harness could become one, with CI building
-   small Catch2 and GTest samples), and the name ("TestMate" is someone else's
+   use), README, CI for the specs in `tests/` (`make deps test`; needs
+   fixtures in `tests/fixtures`, small Catch2 and GTest projects built by
+   make, a C++ parser, and a host-built GTest fixture for an integration
+   spec), and the name ("TestMate" is someone else's
    VSCode extension). Also test the claim Catch2 v2/v3 is supported.
 
 ## Next

@@ -67,13 +67,21 @@ function adapter.is_test_file(path)
     return (name .. "/" .. parent):lower():find("test", 1, true) ~= nil
 end
 
---- The framework of a test source, by the first of its #includes that one of
---- them claims.
+--- The framework of a test source: the first in `frameworks` that one of its
+--- #includes belongs to, whatever the order of the #includes. Catch2 comes
+--- first, so a Catch2 test that includes gmock.h for its mocks, even before
+--- Catch2's header, stays Catch2; taken for GTest, it would have no tests.
 local function detect(path)
     local ok, content = pcall(lib.files.read, path)
     if not ok then return nil end
+    -- Collect all includes first, so the loop below can go by framework
+    -- order instead of include order.
+    local headers = {}
     for header in content:gmatch('#%s*include%s*[<"]([^>"]+)[>"]') do
-        for _, framework in ipairs(frameworks) do
+        table.insert(headers, header)
+    end
+    for _, framework in ipairs(frameworks) do
+        for _, header in ipairs(headers) do
             for _, pattern in ipairs(framework.headers) do
                 if header:find(pattern) then return framework end
             end
