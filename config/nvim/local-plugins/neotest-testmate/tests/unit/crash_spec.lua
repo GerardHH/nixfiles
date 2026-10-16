@@ -10,30 +10,11 @@ local adapter = require("neotest-testmate")
 
 local it = nio.tests.it
 
---- Runs the tests in `file` and returns the results per test name. With
---- `executable`, a build made in the container, runs that directly with
---- `framework`'s arguments: the adapter can't find it on the host, as it
---- embeds /workspaces paths.
-local function run(file, executable, framework)
+--- Runs the tests in `file` and returns the results per test name.
+local function run(file)
     local tree = adapter.discover_positions(file)
     assert.is_not_nil(tree, "no positions: framework not detected?")
-    local spec
-    if executable then
-        local tests = {}
-        for _, node in tree:iter_nodes() do
-            if node:data().type == "test" then table.insert(tests, node:data()) end
-        end
-        local report = nio.fn.tempname()
-        spec = {
-            command = vim.list_extend(
-                { executable },
-                require("neotest-testmate." .. framework).arguments(tests, report)
-            ),
-            context = { framework = framework, report = report, debug = false },
-        }
-    else
-        spec = adapter.build_spec({ tree = tree })
-    end
+    local spec = adapter.build_spec({ tree = tree })
     return helpers.test_results(tree, adapter.results(spec, helpers.run_spec(spec), tree))
 end
 
@@ -43,11 +24,11 @@ local function contains(part, text)
 end
 
 -- The same test cases for v2 and v3, with the same results.
-local function describe_catch2(version, file, executable)
+local function describe_catch2(version, file)
     describe("Catch2 " .. version .. " with a crashing test", function()
         local results
         local function get()
-            results = results or run(helpers.fixture(file), executable and helpers.fixture(executable), "catch2")
+            results = results or run(helpers.fixture(file))
             return results
         end
 
@@ -100,14 +81,13 @@ local function describe_catch2(version, file, executable)
 end
 
 describe_catch2("v3", "cmake-catch2/test/crash_test.cpp")
-describe_catch2("v2", "colcon/src/toolbox/text/test/text_crash_test.cpp", "colcon/build/text/text_crash_test")
+describe_catch2("v2", "colcon/src/toolbox/text/test/text_crash_test.cpp")
 
 describe("GTest with a crashing test", function()
     local file = "colcon/src/toolbox/greeter/test/greeter_crash_test.cpp"
     local results
     local function get()
-        results = results
-            or run(helpers.fixture(file), helpers.fixture("colcon/build/greeter/greeter_crash_test"), "gtest")
+        results = results or run(helpers.fixture(file))
         return results
     end
 

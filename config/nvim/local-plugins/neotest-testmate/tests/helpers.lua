@@ -6,18 +6,13 @@ local nio = require("nio")
 
 local helpers = {}
 
--- Built C++ projects in tests/fixtures, by name. They live here, not in
--- nixfiles' dev-container-tests, as only these specs use them; so FIXTURES
--- needs no setting. Build each in place before running the specs:
---   cmake-catch2  Catch2 v3, built on the host by CMake
---                 (`cmake --preset debug`, `cmake --build --preset debug`).
+-- Built C++ projects in tests/fixtures, by name, built in place by
+-- `make fixtures` in the container (see the Makefile):
+--   cmake-catch2  Catch2 v3, a plain CMake project.
 --   colcon        colcon workspace with Catch2 v2 in src/toolbox/calculator
 --                 and text, and GTest/GMock in src/toolbox/greeter, next to a
---                 Catch2 test there that mocks with GMock. Built in its
---                 container (`colcon build`): its executables embed
---                 /workspaces paths, so the adapter can't find them on the
---                 host. The calculator and text packages have a test/main.cpp
---                 without test cases.
+--                 Catch2 test there that mocks with GMock. The calculator and
+--                 text packages have a test/main.cpp without test cases.
 -- In each, a *crash_test* executable crashes on purpose: Catch2 v3 in
 -- cmake-catch2, v2 in colcon's text package, GTest in its greeter package.
 helpers.fixtures = vim.fs.normalize(vim.env.TESTMATE_FIXTURES or "tests/fixtures")
@@ -25,7 +20,9 @@ helpers.fixtures = vim.fs.normalize(vim.env.TESTMATE_FIXTURES or "tests/fixtures
 --- Absolute path of a file in the fixtures; errors when it is missing.
 function helpers.fixture(relative)
     local path = vim.fs.joinpath(helpers.fixtures, relative)
-    if not vim.uv.fs_stat(path) then error("Missing fixture (TESTMATE_FIXTURES): " .. path) end
+    if not vim.uv.fs_stat(path) then
+        error(("Missing fixture %s (TESTMATE_FIXTURES); not built? See `make fixtures`"):format(path))
+    end
     return path
 end
 
@@ -194,8 +191,8 @@ function helpers.run_suite(probe, files)
 end
 
 --- Errors unless `executable` holds the path of `source`, the way the adapter
---- finds an executable: a build made elsewhere, such as in the container for
---- specs run on the host, embeds other paths. Says so up front, rather than
+--- finds an executable: a build made elsewhere, such as on the host for specs
+--- run in the container, embeds other paths. Says so up front, rather than
 --- through a run that never finishes.
 function helpers.require_build(executable, source)
     local file = io.open(executable, "rb")
@@ -203,7 +200,7 @@ function helpers.require_build(executable, source)
     if file then file:close() end
     if not (content and content:find(source, 1, true)) then
         error(
-            ("%s %s, not here: build the fixture where the specs run, e.g. in its container"):format(
+            ("%s %s: build the fixtures where the specs run, with `make fixtures` in the container"):format(
                 executable,
                 content and ("was built for other paths than " .. source) or "is missing"
             )

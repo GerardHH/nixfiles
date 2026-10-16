@@ -2,7 +2,7 @@
 -- pty, with the exit code nvim reports for a signal. The run must finish,
 -- with the crash and the tests it kept from running reported (see
 -- tests/unit/crash_spec.lua for each framework; GTest's crash runs through
--- neotest in tests/container).
+-- neotest in tests/suite).
 local nio = require("nio")
 local helpers = require("tests.helpers")
 

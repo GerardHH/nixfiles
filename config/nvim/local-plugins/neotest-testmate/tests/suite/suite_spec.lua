@@ -1,8 +1,8 @@
 -- A suite run of the colcon fixture through neotest itself, as <leader>tp
 -- runs it: every test file in the workspace, Catch2 and GTest side by side.
 -- Needs the workspace built for the paths the specs see, as the adapter finds
--- an executable by the source paths in it: so in the fixture's container,
--- after a colcon build (see `make container`).
+-- an executable by the source paths in it: by `make fixtures`, where the
+-- specs run (see the Makefile).
 local nio = require("nio")
 local helpers = require("tests.helpers")
 

@@ -1,5 +1,5 @@
 {
-  "name": "neotest-testmate-colcon",
+  "name": "neotest-testmate",
   "build": {
     "dockerfile": "Dockerfile"
   },

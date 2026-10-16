@@ -5,8 +5,11 @@ RUN [ "$(id --user --name 1000)" = "ubuntu" ] || { \
     exit 1; \
     }
 
-# The C++ toolchain that the container profile leaves to the image
-# (languages.c_cpp.provideTools = false), and colcon to build the workspace.
+# Everything the fixtures in tests/fixtures build with, as the specs run
+# where the fixtures were built (`make check`): the C++ toolchain that the
+# container profile leaves to the image (languages.c_cpp.provideTools =
+# false), and colcon for the colcon workspace. A fixture for another language
+# adds its tools here.
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
     build-essential \

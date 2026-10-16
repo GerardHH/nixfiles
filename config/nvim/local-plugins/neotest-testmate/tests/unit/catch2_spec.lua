@@ -54,7 +54,7 @@ describe("Catch2", function()
     end)
 end)
 
--- Discovery only: the executable is built in the container (see gtest_spec).
+-- Discovery only; tests/suite runs it.
 describe("Catch2 with GMock", function()
     local file = helpers.fixture("colcon/src/toolbox/greeter/test/greeter_catch2_test.cpp")
 

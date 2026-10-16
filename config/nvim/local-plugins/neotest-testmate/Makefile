@@ -1,24 +1,31 @@
 # Specs for neotest-testmate, run by plenary.nvim's busted in headless nvim,
 # laid out like neotest-ctest's: tests/unit calls the adapter's functions
-# directly, tests/integration runs it through neotest itself. tests/container
-# needs the colcon fixture built where the specs run, so it is left out of
-# `make test`: see the container target.
+# directly, tests/integration runs it through neotest itself, and tests/suite
+# runs every test file of the colcon fixture through neotest, as <leader>tp
+# does.
+#
+# The specs run the projects in tests/fixtures, and the adapter finds an
+# executable by the source paths in it: so the fixtures are built where the
+# specs run, from the same paths. That is the container in .devcontainer/,
+# which has the tools every fixture builds with. From nixfiles on the host,
+# one command builds and runs everything in it:
+#
+#   bin/nix-devcontainer.sh config/nvim/local-plugins/neotest-testmate -- make check
+#
+# In the container's shell, `make check` does the same, and `make test` runs
+# the specs again without building. A pipeline runs `make check`.
 #
 # Everything runs in a sandbox of XDG directories, so neither your own nvim
 # config nor its state and logs take part (neotest.log ends up in
-# $(SANDBOX)/state/nvim/). Locally, point DEPS at your lazy.nvim plugins, after
-# building the fixtures in tests/fixtures (see tests/helpers.lua):
+# $(SANDBOX)/state/nvim/). `make deps` clones the plugins the specs load into
+# DEPS, unless they are there already, e.g. with your lazy.nvim's:
 #
-#   make test DEPS=$HOME/.local/share/nvim/lazy
-#
-# Run it from the path the fixtures were built under (~/nixfiles/config/nvim,
-# not the ~/.config/nvim link to it), as the adapter finds an executable by
-# the source paths in it.
+#   make check DEPS=$HOME/.local/share/nvim/lazy
 #
 # PLUGIN picks the adapter under test, e.g. an older commit's tree, to tell a
 # regression from a problem in the specs.
 
-.PHONY: test unit integration container deps clean
+.PHONY: check fixtures test unit integration suite deps clean clean-fixtures
 
 SANDBOX ?= .sandbox
 # Plugin checkouts the specs load: plenary.nvim, nvim-nio, neotest and
@@ -48,7 +55,18 @@ export PLENARY_TEST_TIMEOUT ?= 60000
 BUSTED = nvim --headless --noplugin -u tests/minimal_init.lua -c \
     "PlenaryBustedDirectory $(1) {minimal_init = 'tests/minimal_init.lua', sequential = true, timeout = 180000}"
 
-test: unit integration
+# Everything a pipeline needs, in order: make runs prerequisites left to right
+# (unless run with --jobs).
+check: deps fixtures test
+
+# Builds every fixture in place; each build tool skips what is up to date.
+# colcon is in the container only; without it, say where to run this.
+fixtures:
+	@command -v colcon >/dev/null || { echo "colcon not found: run 'make fixtures' in the container, see .devcontainer/" >&2; exit 1; }
+	cd $(FIXTURES)/cmake-catch2 && cmake --preset debug && cmake --build --preset debug
+	cd $(FIXTURES)/colcon && colcon build
+
+test: unit integration suite
 
 unit:
 	@mkdir --parents $(XDG_STATE_HOME)
@@ -58,19 +76,11 @@ integration:
 	@mkdir --parents $(XDG_STATE_HOME)
 	$(call BUSTED,tests/integration)
 
-# A suite run of the colcon fixture. The adapter finds an executable by the
-# source paths in it, so run this in the fixture's container after a
-# `colcon build`, from this directory under /workspaces: the devcontainer CLI
-# mounts the whole nixfiles repo there, which the build saw. The ~/nixfiles
-# mount from nix-devcontainer.sh has other paths.
-#
-#   cd /workspaces/nixfiles/config/nvim/local-plugins/neotest-testmate
-#   make container DEPS=$HOME/.local/share/nvim/lazy
-container:
+suite:
 	@mkdir --parents $(XDG_STATE_HOME)
-	$(call BUSTED,tests/container)
+	$(call BUSTED,tests/suite)
 
-# Shallow clones of the dependencies, for CI; skipped when DEPS already has them.
+# Shallow clones of the dependencies; skipped when DEPS already has them.
 deps:
 	@for repo in nvim-lua/plenary.nvim nvim-neotest/nvim-nio nvim-neotest/neotest orjangj/neotest-ctest; do \
 	    dir="$(DEPS)/$${repo#*/}"; \
@@ -79,3 +89,9 @@ deps:
 
 clean:
 	rm --recursive --force $(SANDBOX)
+
+# The fixtures' build output. Needed after the fixtures moved, or were built
+# at other paths: CMake refuses a build directory made for another source path.
+clean-fixtures:
+	rm --recursive --force $(FIXTURES)/cmake-catch2/build $(FIXTURES)/cmake-catch2/.cache
+	rm --recursive --force $(FIXTURES)/colcon/build $(FIXTURES)/colcon/install $(FIXTURES)/colcon/log $(FIXTURES)/colcon/.cache

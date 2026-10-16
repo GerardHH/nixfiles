@@ -1,6 +1,4 @@
--- GTest/GMock through the adapter's own functions. The fixture's executable
--- is built in the container, so build_spec can't find it on the host (it
--- embeds /workspaces paths): run it directly with gtest.arguments instead.
+-- GTest/GMock through the adapter's own functions.
 local nio = require("nio")
 local helpers = require("tests.helpers")
 local adapter = require("neotest-testmate")
@@ -9,7 +7,6 @@ local it = nio.tests.it
 
 describe("GTest", function()
     local file = helpers.fixture("colcon/src/toolbox/greeter/test/greeter_test.cpp")
-    local executable = helpers.fixture("colcon/build/greeter/greeter_test")
 
     it("discovers a file that includes only gmock.h", function()
         local tree = adapter.discover_positions(file)
@@ -26,15 +23,7 @@ describe("GTest", function()
 
     it("sums up TEST_P and TYPED_TEST instances in the results", function()
         local tree = adapter.discover_positions(file)
-        local tests = {}
-        for _, node in tree:iter_nodes() do
-            if node:data().type == "test" then table.insert(tests, node:data()) end
-        end
-        local report = nio.fn.tempname()
-        local spec = {
-            command = vim.list_extend({ executable }, require("neotest-testmate.gtest").arguments(tests, report)),
-            context = { framework = "gtest", report = report, debug = false },
-        }
+        local spec = adapter.build_spec({ tree = tree })
         local result = helpers.run_spec(spec)
         assert.same({
             ["Greet.UsesTheName"] = "passed",
