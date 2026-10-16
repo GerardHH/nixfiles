@@ -7,8 +7,8 @@ local helpers = require("tests.helpers")
 local it = nio.tests.it
 
 describe("neotest with a file without test cases", function()
-    local probe = helpers.start_neotest(helpers.fixture("colcon-catch2"))
-    local main = helpers.fixture("colcon-catch2/src/toolbox/calculator/test/main.cpp")
+    local probe = helpers.start_neotest(helpers.fixture("colcon"))
+    local main = helpers.fixture("colcon/src/toolbox/calculator/test/main.cpp")
 
     it("finishes the run and marks the file skipped", function()
         local _, results = helpers.run_file(probe, main)

@@ -23,39 +23,35 @@ neotest and nvim-dap for the work setup, through
 `config/nvim/local-plugins/neotest-testmate/`: an adapter that runs test
 executables directly, like VSCode's C++ TestMate, instead of through CTest.
 Supports Catch2 v2/v3 and, since 19dd9fd, GTest/GMock (`catch2.lua`,
-`gtest.lua`, `xml.lua`; framework picked by `#include`). Test bed:
-`dev-container-tests/colcon-catch2/`, with GTest in `src/toolbox/greeter`, and
-there also a Catch2 test that mocks with GMock (`greeter_catch2_test.cpp`). Keep
-work project details out of this repo; facts only.
+`gtest.lua`, `xml.lua`; framework picked by `#include`). Fixtures in its
+`tests/fixtures/`: `cmake-catch2` (Catch2 v3, built on the host) and `colcon`
+(a colcon workspace with its own `.devcontainer/`: Catch2 v2, GTest in
+`src/toolbox/greeter`, and there also a Catch2 test that mocks with GMock,
+`greeter_catch2_test.cpp`). Keep work project details out of this repo; facts
+only.
 
-Specs: `make test` in the adapter's directory (plenary busted; `tests/unit`
-calls the adapter, `tests/integration` runs neotest itself), with
-`DEPS=$HOME/.local/share/nvim/lazy FIXTURES=$HOME/nixfiles/dev-container-tests`.
-`make container` (`tests/container`, a `<leader>tp` suite run of
-`colcon-catch2`) needs the test bed built where it runs: in its container after
-`colcon build`, with `FIXTURES=/workspaces/nixfiles/dev-container-tests` (the
+Specs: `make test` in the adapter's directory under `~/nixfiles` (plenary
+busted; `tests/unit` calls the adapter, `tests/integration` runs neotest
+itself), with `DEPS=$HOME/.local/share/nvim/lazy`, after building both
+fixtures. `make container` (`tests/container`, a `<leader>tp` suite run of
+`colcon`) runs in that fixture's container
+(`bin/nix-devcontainer.sh config/nvim/local-plugins/neotest-testmate/tests/fixtures/colcon`)
+after `colcon build`, from
+`/workspaces/nixfiles/config/nvim/local-plugins/neotest-testmate` (the
 devcontainer CLI mounts the whole repo there; `~/nixfiles` won't do, as the
 executables embed the `/workspaces` paths). In Claude's sandbox the fixtures
 must be on a writable path: neotest's `lib.files.exists` uses
 `os.rename(path, path)`, which fails on the read-only repo (EROFS), so discovery
-silently finds nothing. Scratch builds of `cmake-catch2` and `colcon-catch2`
-(its packages built by plain CMake, so `make container` runs on the host) are in
-`/tmp/claude-1000/nixfiles/fixtures/` until reboot (configure offline with
+silently finds nothing. So Claude builds scratch copies of both fixtures in the
+session scratchpad, `colcon`'s packages by plain CMake so `make container` runs
+on the host, and points `FIXTURES` there (configure offline with
 `-DFETCHCONTENT_SOURCE_DIR_CATCH2=` and `_GOOGLETEST=` the repo builds'
 `_deps/*-src`). DEBUG log for a run:
 `:lua require("neotest.logging"):set_level("debug")`, then
 `~/.local/state/nvim/neotest.log`.
 
-1. **Rename the test bed** to `dev-container-tests/colcon-neotest-testmate`
-   (`git mv`), as it targets the adapter, not Catch2. Also update `name` in its
-   `.devcontainer/devcontainer.json` (`nixfiles-colcon-catch2`), and the
-   `colcon-catch2` fixture paths in the adapter's `tests/` (`helpers.lua` and
-   the unit, integration and container specs). The per-workspace bash history
-   from `bin/nix-devcontainer.sh` is keyed on the path, so it starts empty. My
-   edit: Lets consider moving all the tests to the neotest-testmate plugin.
-   These tests were there to serve this end goal anyway.
-2. **Report crashes properly.** A SEGV in a Catch2 v2 test (`expected[4]`
-   on a 3-element vector, tried in `text_test.cpp` of the test bed) shows as
+1. **Report crashes properly.** A SEGV in a Catch2 v2 test (`expected[4]`
+   on a 3-element vector, tried in `text_test.cpp` of `colcon`) shows as
    `text_test.cpp:7: nil( {Unknown expression after the reported line} )`.
    Catch2 v2's `handleFatalErrorCondition` reports it as an `<Expression>`
    without `type` (the macro name is empty, and `writeAttribute` skips empty
@@ -67,13 +63,20 @@ silently finds nothing. Scratch builds of `cmake-catch2` and `colcon-catch2`
    assertion before the crash, not the crash itself (Catch2 doesn't know
    that one). Check v3's report, and GTest's (no report at all after a
    crash). Under the dap strategy the debugger already stops at the crash.
-3. In VSCode's TestMate I can see the individual tests in the overview. In this
-   plugins current form, I only see the binary names.
-4. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
+2. **Say why a run failed outside the tests**, e.g. a workspace not sourced
+   before starting nvim. When an executable leaves no complete report,
+   `adapter.results` (`init.lua`) marks each test failed with only
+   `Exited with code %d without writing a complete report`; the reason is in
+   the run's output (`result.output`), which that message doesn't show. Fix:
+   add the end of that output to the message, and a hint for known causes,
+   e.g. exit code 127 with `error while loading shared libraries` → source
+   `install/setup.bash`. Check first what an unsourced run shows now, and
+   the dap strategy too.
+3. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
    Open: own repo, vendoring neotest-ctest's Catch2 query (its only remaining
-   use), README, CI for the specs in `tests/` (`make deps test`; needs
-   fixtures in `tests/fixtures`, small Catch2 and GTest projects built by
-   make, a C++ parser, and a host-built GTest fixture for an integration
+   use), README, CI for the specs in `tests/` (`make deps test`; needs the
+   fixtures in `tests/fixtures` built by make, not by hand with CMake and
+   colcon, a C++ parser, and a host-built GTest fixture for an integration
    spec), and the name ("TestMate" is someone else's
    VSCode extension). Also test the claim Catch2 v2/v3 is supported.
 

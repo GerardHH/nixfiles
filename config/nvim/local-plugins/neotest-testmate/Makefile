@@ -1,16 +1,19 @@
 # Specs for neotest-testmate, run by plenary.nvim's busted in headless nvim,
 # laid out like neotest-ctest's: tests/unit calls the adapter's functions
 # directly, tests/integration runs it through neotest itself. tests/container
-# needs the colcon test bed built where the specs run, so it is left out of
+# needs the colcon fixture built where the specs run, so it is left out of
 # `make test`: see the container target.
 #
 # Everything runs in a sandbox of XDG directories, so neither your own nvim
 # config nor its state and logs take part (neotest.log ends up in
-# $(SANDBOX)/state/nvim/). Locally, point DEPS at your lazy.nvim plugins and
-# FIXTURES at built test projects, e.g. from nixfiles:
+# $(SANDBOX)/state/nvim/). Locally, point DEPS at your lazy.nvim plugins, after
+# building the fixtures in tests/fixtures (see tests/helpers.lua):
 #
-#   make test DEPS=$HOME/.local/share/nvim/lazy \
-#       FIXTURES=$HOME/nixfiles/dev-container-tests
+#   make test DEPS=$HOME/.local/share/nvim/lazy
+#
+# Run it from the path the fixtures were built under (~/nixfiles/config/nvim,
+# not the ~/.config/nvim link to it), as the adapter finds an executable by
+# the source paths in it.
 #
 # PLUGIN picks the adapter under test, e.g. an older commit's tree, to tell a
 # regression from a problem in the specs.
@@ -55,13 +58,14 @@ integration:
 	@mkdir --parents $(XDG_STATE_HOME)
 	$(call BUSTED,tests/integration)
 
-# A suite run of the colcon test bed. The adapter finds an executable by the
-# source paths in it, so run this in the test bed's container after a
-# `colcon build`, with FIXTURES at the path the build saw: the devcontainer
-# CLI mounts the whole nixfiles repo under /workspaces, not the test bed alone.
+# A suite run of the colcon fixture. The adapter finds an executable by the
+# source paths in it, so run this in the fixture's container after a
+# `colcon build`, from this directory under /workspaces: the devcontainer CLI
+# mounts the whole nixfiles repo there, which the build saw. The ~/nixfiles
+# mount from nix-devcontainer.sh has other paths.
 #
-#   make container DEPS=$HOME/.local/share/nvim/lazy \
-#       FIXTURES=/workspaces/nixfiles/dev-container-tests
+#   cd /workspaces/nixfiles/config/nvim/local-plugins/neotest-testmate
+#   make container DEPS=$HOME/.local/share/nvim/lazy
 container:
 	@mkdir --parents $(XDG_STATE_HOME)
 	$(call BUSTED,tests/container)

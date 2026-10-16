@@ -1,14 +1,14 @@
--- A suite run of the colcon test bed through neotest itself, as <leader>tp
+-- A suite run of the colcon fixture through neotest itself, as <leader>tp
 -- runs it: every test file in the workspace, Catch2 and GTest side by side.
 -- Needs the workspace built for the paths the specs see, as the adapter finds
--- an executable by the source paths in it: so in the test bed's container,
+-- an executable by the source paths in it: so in the fixture's container,
 -- after a colcon build (see `make container`).
 local nio = require("nio")
 local helpers = require("tests.helpers")
 
 local it = nio.tests.it
 
-local function source(relative) return helpers.fixture("colcon-catch2/src/toolbox/" .. relative) end
+local function source(relative) return helpers.fixture("colcon/src/toolbox/" .. relative) end
 
 -- Status per test name, per file; an empty table for a file without tests.
 local expected = {
@@ -51,10 +51,10 @@ describe("neotest with a colcon workspace", function()
         greeter_catch2_test = "greeter/test/greeter_catch2_test.cpp",
     }) do
         local package = vim.split(file, "/")[1]
-        helpers.require_build(helpers.fixture(("colcon-catch2/build/%s/%s"):format(package, executable)), source(file))
+        helpers.require_build(helpers.fixture(("colcon/build/%s/%s"):format(package, executable)), source(file))
     end
 
-    local probe = helpers.start_neotest(helpers.fixture("colcon-catch2"))
+    local probe = helpers.start_neotest(helpers.fixture("colcon"))
     local files = vim.tbl_map(source, vim.tbl_keys(expected))
 
     -- One suite run for all specs below.

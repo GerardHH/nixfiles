@@ -1,5 +1,5 @@
 {
-  "name": "nixfiles-colcon-catch2",
+  "name": "neotest-testmate-colcon",
   "build": {
     "dockerfile": "Dockerfile"
   },

@@ -8,8 +8,8 @@ local adapter = require("neotest-testmate")
 local it = nio.tests.it
 
 describe("GTest", function()
-    local file = helpers.fixture("colcon-catch2/src/toolbox/greeter/test/greeter_test.cpp")
-    local executable = helpers.fixture("colcon-catch2/build/greeter/greeter_test")
+    local file = helpers.fixture("colcon/src/toolbox/greeter/test/greeter_test.cpp")
+    local executable = helpers.fixture("colcon/build/greeter/greeter_test")
 
     it("discovers a file that includes only gmock.h", function()
         local tree = adapter.discover_positions(file)

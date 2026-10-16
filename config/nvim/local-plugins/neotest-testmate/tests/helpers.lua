@@ -6,13 +6,18 @@ local nio = require("nio")
 
 local helpers = {}
 
--- Built C++ projects, by name; for now nixfiles' dev-container-tests:
---   cmake-catch2   Catch2 v3, built on the host by CMake.
---   colcon-catch2  colcon workspace with GTest/GMock in src/toolbox/greeter,
---                  next to a Catch2 test there that mocks with GMock. Built in
---                  the container: its executables embed /workspaces paths, so
---                  the adapter can't find them on the host. The calculator and
---                  text packages have a test/main.cpp without test cases.
+-- Built C++ projects in tests/fixtures, by name. They live here, not in
+-- nixfiles' dev-container-tests, as only these specs use them; so FIXTURES
+-- needs no setting. Build each in place before running the specs:
+--   cmake-catch2  Catch2 v3, built on the host by CMake
+--                 (`cmake --preset debug`, `cmake --build --preset debug`).
+--   colcon        colcon workspace with Catch2 v2 in src/toolbox/calculator
+--                 and text, and GTest/GMock in src/toolbox/greeter, next to a
+--                 Catch2 test there that mocks with GMock. Built in its
+--                 container (`colcon build`): its executables embed
+--                 /workspaces paths, so the adapter can't find them on the
+--                 host. The calculator and text packages have a test/main.cpp
+--                 without test cases.
 helpers.fixtures = vim.fs.normalize(vim.env.TESTMATE_FIXTURES or "tests/fixtures")
 
 --- Absolute path of a file in the fixtures; errors when it is missing.

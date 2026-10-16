@@ -15,7 +15,7 @@ end
 
 describe("a position without test cases", function()
     it("runs nothing for a file and marks it skipped", function()
-        local main = helpers.fixture("colcon-catch2/src/toolbox/calculator/test/main.cpp")
+        local main = helpers.fixture("colcon/src/toolbox/calculator/test/main.cpp")
         local tree = adapter.discover_positions(main)
         assert.same({}, helpers.test_names(tree))
 
@@ -46,7 +46,7 @@ describe("a position without test cases", function()
     end)
 
     it("refuses to debug it, saying why", function()
-        local main = helpers.fixture("colcon-catch2/src/toolbox/calculator/test/main.cpp")
+        local main = helpers.fixture("colcon/src/toolbox/calculator/test/main.cpp")
         local tree = adapter.discover_positions(main)
         assert.has_error(
             function() adapter.build_spec({ tree = tree, strategy = "dap" }) end,
