@@ -154,10 +154,6 @@ first. The usage comment promises forwarding extra `devcontainer up` arguments,
 but the script doesn't pass `$@` on. Perhaps also introduce some autocompletion
 for commands?
 
-### 2026-10-04 · tmux inside the container while the container shell already
-
-Runs in a host tmux pane: nested tmux (prefix clash, two status lines).
-
 ### 2026-10-04 · setlocale warnings in the work container
 
 bash warns it cannot set `en_US.UTF-8` (LC_CTYPE, LC_COLLATE). Our config sets
@@ -230,6 +226,19 @@ or move to `tmuxPlugins.catppuccin` (official v2: `@catppuccin_flavor`, status
 line set up by hand).
 
 ## Later
+
+### 2026-10-16 · Nested tmux in the container
+
+The container shell runs in a host tmux pane (every alacritty window starts
+in tmux, group `main`, via `[terminal.shell]` in
+`config/alacritty/alacritty.toml`), so tmux inside it is nested (prefix clash,
+two status lines). Nothing starts tmux in the container. Options: don't run it
+there, or give the inner one a different prefix, or a key that turns the
+outer one off so keys pass through.
+
+Alternative to tmux as the multiplexer: nvim with `:terminal` buffers for
+shells, and its sessions for layout. One less layer and one set of keys, but
+shells die with nvim.
 
 ### 2026-10-03 · Copilot CLI in the container
 

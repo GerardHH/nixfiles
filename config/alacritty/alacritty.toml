@@ -84,8 +84,11 @@ style = "Regular"
 save_to_clipboard = true
 
 [terminal]
-shell = "bash"
 osc52 = "OnlyCopy"
+
+[terminal.shell]
+program = "bash"
+args = ["-c", "tmux new-session -t main || exec bash"]
 
 # Shift-Enter normally sends the same carriage return as Enter.
 # ESC [ 13 ; 2 u = key code 13 (Enter) with modifier 2 (Shift).
