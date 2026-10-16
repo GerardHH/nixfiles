@@ -75,7 +75,12 @@ return {
             { "<leader>du", function() require("dapui").toggle({}) end, desc = "Debug dap UI" },
             { "<leader>de", function() require("dapui").eval() end, desc = "Debug eval", mode = { "n", "v" } },
         },
-        opts = {},
+        opts = {
+            element_mappings = {
+                stacks = { open = { "<CR>", "<2-LeftMouse>", "o" }, expand = {} },
+                breakpoints = { open = { "<CR>", "<2-LeftMouse>", "o" }, expand = {} },
+            },
+        },
         config = function(_, opts)
             local dap = require("dap")
             local dapui = require("dapui")
