@@ -4,21 +4,25 @@
 # 1. Mount /nix into the container.
 # 2. Download nixfiles from GitHub and run 'install.sh'.
 #
-# Then start it and drop into it with a shell.
+# Then start it and drop into it with a shell, or run a command in it.
 #
 #
 # Usage:
-#   nix-devcontainer.sh [workspace-folder] [devcontainer-args...]
+#   nix-devcontainer.sh [workspace-folder] [devcontainer-args...] [-- command...]
 #
 # Arguments:
 #   workspace-folder  - directory holding .devcontainer/. Defaults to $PWD.
-#   devcontainer-args - remaining arguments forwarded to 'devcontainer up'
+#   devcontainer-args - arguments up to '--', forwarded to 'devcontainer up'
+#   command           - after '--': run this in the workspace folder, in a
+#                       login shell for the nixfiles environment, instead of
+#                       dropping into a shell. For scripted runs, such as
+#                       a project's tests.
 #
 # Outputs:
 #   Writes progress to stdout and diagnostics to stderr.
 #
 # Returns:
-#   0 on success; 1 from any failed precondition.
+#   0 on success; 1 from any failed precondition; with a command, its status.
 
 set -o errexit -o nounset -o pipefail
 
@@ -32,9 +36,24 @@ fi
 command -v devcontainer >/dev/null || die "devcontainer is not on PATH; is pkgs.devcontainer in home.packages?"
 command -v podman >/dev/null || die "podman missing: sudo apt install --yes podman"
 
-WORKSPACE="$(realpath -- "${1:-${PWD}}")"
+WORKSPACE="${PWD}"
+# A leading '--' means no workspace folder, only a command.
+if (($# > 0)) && [[ $1 != -- ]]; then
+    WORKSPACE="$1"
+    shift
+fi
+WORKSPACE="$(realpath -- "${WORKSPACE}")"
+
+# Arguments for 'devcontainer up' run up to '--'; the command follows it.
+up_arguments=()
+while (($# > 0)) && [[ $1 != -- ]]; do
+    up_arguments+=("$1")
+    shift
+done
+command_arguments=()
 if (($# > 0)); then
     shift
+    command_arguments=("$@")
 fi
 
 STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/nix-devcontainer/${WORKSPACE//\//-}"
@@ -51,7 +70,7 @@ devcontainer up \
     --mount "type=bind,source=/nix,target=/nix" \
     --mount "type=bind,source=${NIXFILES_REPO_DIR},target=/home/ubuntu/nixfiles" \
     --mount "type=bind,source=${STATE_DIR}/bash,target=/home/ubuntu/.local/state/bash" \
-    "$@"
+    "${up_arguments[@]}"
 
 # Podman creates missing parents of a mount target as root; hand them back.
 podman exec \
@@ -65,6 +84,16 @@ devcontainer exec \
     "${default_options[@]}" \
     bash -lc '~/nixfiles/install.sh'
 
-devcontainer exec \
-    "${default_options[@]}" \
-    bash
+if ((${#command_arguments[@]} > 0)); then
+    # A login shell, as for install.sh: it puts the nix profile, nvim among
+    # it, on PATH. The command's words are bash's own arguments ("bash" fills
+    # $0), so "$@" passes each on as given, without a second round of
+    # quoting. errexit makes the script exit with the command's status.
+    devcontainer exec \
+        "${default_options[@]}" \
+        bash -lc '"$@"' bash "${command_arguments[@]}"
+else
+    devcontainer exec \
+        "${default_options[@]}" \
+        bash
+fi
