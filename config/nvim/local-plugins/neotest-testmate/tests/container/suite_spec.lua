@@ -39,6 +39,23 @@ local expected = {
         ["greet in the morning"] = "passed",
         ["greet in the evening"] = "passed",
     },
+    -- Crash on purpose, and must not hold up the rest of the suite (see
+    -- tests/unit/crash_spec.lua for the messages).
+    ["text/test/text_crash_test.cpp"] = {
+        ["passes before the crash"] = "passed",
+        ["throws inside an assertion"] = "failed",
+        ["throws outside an assertion"] = "failed",
+        ["throws after an assertion"] = "failed",
+        segfaults = "failed",
+        ["not run after the crash"] = "skipped",
+    },
+    ["greeter/test/greeter_crash_test.cpp"] = {
+        ["Crash.PassesBefore"] = "passed",
+        ["Crash.FailsBefore"] = "failed",
+        ["Crash.ThrowsOutsideAnAssertion"] = "failed",
+        ["Crash.Segfaults"] = "failed",
+        ["Crash.NotRunAfter"] = "skipped",
+    },
 }
 
 describe("neotest with a colcon workspace", function()
@@ -49,6 +66,8 @@ describe("neotest with a colcon workspace", function()
         text_test = "text/test/text_test.cpp",
         greeter_test = "greeter/test/greeter_test.cpp",
         greeter_catch2_test = "greeter/test/greeter_catch2_test.cpp",
+        text_crash_test = "text/test/text_crash_test.cpp",
+        greeter_crash_test = "greeter/test/greeter_crash_test.cpp",
     }) do
         local package = vim.split(file, "/")[1]
         helpers.require_build(helpers.fixture(("colcon/build/%s/%s"):format(package, executable)), source(file))
@@ -83,5 +102,15 @@ describe("neotest with a colcon workspace", function()
             assert.equals("skipped", result.status)
             assert.equals("No test cases in file main.cpp", result.short)
         end
+    end)
+
+    -- Through neotest's pty, where GTest colours its output, and with the exit
+    -- code nvim reports for a signal.
+    it("reports GTest's crash from the console output", function()
+        local suite, suite_results = run()
+        local file = suite:get_key(source("greeter/test/greeter_crash_test.cpp"))
+        local by_name = helpers.test_results(file, suite_results)
+        assert.is_not_nil(by_name["Crash.Segfaults"].short:find("Crashed: SIGSEGV (exit code 139)", 1, true))
+        assert.equals("not run: the run crashed before it, in Crash.Segfaults", by_name["Crash.NotRunAfter"].short)
     end)
 end)

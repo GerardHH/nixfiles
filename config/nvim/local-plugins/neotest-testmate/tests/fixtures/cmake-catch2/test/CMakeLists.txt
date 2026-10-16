@@ -13,3 +13,8 @@ add_executable(calculator_tests calculator_test.cpp)
 target_link_libraries(calculator_tests PRIVATE calculator Catch2::Catch2WithMain)
 
 catch_discover_tests(calculator_tests)
+
+# Crashes on purpose, for the adapter's crash reporting (see crash_test.cpp).
+# Left out of catch_discover_tests, so CTest doesn't run it.
+add_executable(crash_tests crash_test.cpp)
+target_link_libraries(crash_tests PRIVATE Catch2::Catch2WithMain)

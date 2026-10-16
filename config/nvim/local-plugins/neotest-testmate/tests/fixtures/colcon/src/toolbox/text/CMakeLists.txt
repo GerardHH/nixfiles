@@ -23,4 +23,9 @@ if(BUILD_TESTING)
     add_executable(${PROJECT_NAME}_test test/main.cpp test/${PROJECT_NAME}_test.cpp)
     target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} Catch2::Catch2)
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME}_test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+    # Crashes on purpose, for the adapter's crash reporting (see
+    # test/text_crash_test.cpp). Not registered with CTest.
+    add_executable(${PROJECT_NAME}_crash_test test/main.cpp test/${PROJECT_NAME}_crash_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_crash_test PRIVATE Catch2::Catch2)
 endif()

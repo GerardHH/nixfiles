@@ -201,6 +201,17 @@ function adapter.results(spec, result, tree)
     -- An interrupted debug session leaves no report; keep the previous results.
     if not cases and spec.context.debug then return {} end
 
+    -- Anything the executable printed itself, such as a crash message.
+    local printed = vim.trim(lib.files.read(result.output) or "")
+    -- Without a report, as GTest's after a crash, what the output shows.
+    if not cases and framework.read_output then cases = framework.read_output(printed, result.code) end
+
+    -- The test the run crashed in, so the tests without a result can say why.
+    local crashed
+    for name, case in pairs(cases or {}) do
+        if vim.iter(case.failures):any(function(failure) return failure.crash end) then crashed = name end
+    end
+
     local results, summary = {}, {}
     local summary_path = nio.fn.tempname()
     for _, node in tree:iter_nodes() do
@@ -220,9 +231,15 @@ function adapter.results(spec, result, tree)
                     table.insert(lines, location .. failure.message)
                     if failure.line and failure.file == position.path then
                         table.insert(errors, { line = failure.line - 1, message = failure.message })
+                    elseif failure.crash then
+                        -- A crash without a location, as GTest's: on the
+                        -- test's first line, so the editor still shows it.
+                        table.insert(errors, { line = position.range[1], message = failure.message })
                     end
                 end
                 short = #lines > 0 and table.concat(lines, "\n") or case.message or status
+            elseif crashed then
+                short = ("not run: the run crashed before it, in %s"):format(crashed)
             end
             table.insert(
                 summary,
@@ -233,8 +250,6 @@ function adapter.results(spec, result, tree)
         end
     end
 
-    -- Anything the executable printed itself, such as a crash message.
-    local printed = vim.trim(lib.files.read(result.output) or "")
     if printed ~= "" then vim.list_extend(summary, { "", printed }) end
     lib.files.write(summary_path, table.concat(summary, "\n") .. "\n")
 

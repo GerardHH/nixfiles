@@ -28,27 +28,50 @@ end
 catch2.break_arguments = { "--break" }
 
 -- Failed assertions, exceptions and fatal signals anywhere in a test case,
--- sections included, as { file, line, message }.
+-- sections included, as { file, line, message, crash }; `crash` marks a fatal
+-- signal, after which the run ended.
 local function failures(element, found)
     found = found or {}
     for _, expression in ipairs(xml.as_list(element.Expression)) do
         if expression._attr.success == "false" then
-            local message = ("%s( %s )"):format(expression._attr.type, xml.text(expression.Original))
-            local expanded = xml.text(expression.Expanded)
-            if expanded ~= xml.text(expression.Original) then message = message .. "\nwith expansion: " .. expanded end
-            table.insert(
-                found,
-                { file = expression._attr.filename, line = tonumber(expression._attr.line), message = message }
-            )
+            local file, line = expression._attr.filename, tonumber(expression._attr.line)
+            -- v2 and v3 report a fatal signal, or an exception thrown outside
+            -- an assertion once one has run, as an expression without type,
+            -- "{Unknown expression after the reported line}", with the signal
+            -- or exception nested in it. Catch2 doesn't know where it came
+            -- from: the expression's line is the last assertion that ran.
+            if not expression._attr.type then
+                local fatal = expression.FatalErrorCondition
+                local what = fatal and ("Crashed: %s,"):format(xml.text(fatal))
+                    or ("Exception: %s, thrown"):format(
+                        table.concat(vim.tbl_map(xml.text, xml.as_list(expression.Exception)), "; ")
+                    )
+                local message = what .. " somewhere after this line (the last assertion that ran)"
+                table.insert(found, { file = file, line = line, message = message, crash = fatal and true or nil })
+            else
+                local message = ("%s( %s )"):format(expression._attr.type, xml.text(expression.Original))
+                local expanded = xml.text(expression.Expanded)
+                if expanded ~= xml.text(expression.Original) then
+                    message = message .. "\nwith expansion: " .. expanded
+                end
+                -- An exception thrown while evaluating the assertion is nested
+                -- in it, and is what made it fail.
+                for _, exception in ipairs(xml.as_list(expression.Exception)) do
+                    message = message .. "\nException: " .. xml.text(exception)
+                end
+                table.insert(found, { file = file, line = line, message = message })
+            end
         end
     end
     for _, kind in ipairs({ "Exception", "FatalErrorCondition", "Failure" }) do
         for _, failure in ipairs(xml.as_list(element[kind])) do
             local attr = failure._attr or {}
-            table.insert(
-                found,
-                { file = attr.filename, line = tonumber(attr.line), message = kind .. ": " .. xml.text(failure) }
-            )
+            table.insert(found, {
+                file = attr.filename,
+                line = tonumber(attr.line),
+                message = kind .. ": " .. xml.text(failure),
+                crash = kind == "FatalErrorCondition" or nil,
+            })
         end
     end
     for _, section in ipairs(xml.as_list(element.Section)) do
@@ -89,6 +112,8 @@ end
 
 --- Test cases in a v2 (<Catch><Group>) or v3 (<Catch2TestRun>) report, by
 --- test case name, as { status, failures }; nil without a complete report.
+--- After a fatal signal the report is still complete: Catch2's handler
+--- finishes it before the process dies, without the test cases after it.
 function catch2.read_report(path)
     local parsed = xml.read(path, escape_gt_in_attributes)
     local run = parsed and (parsed.Catch and parsed.Catch.Group or parsed.Catch2TestRun)

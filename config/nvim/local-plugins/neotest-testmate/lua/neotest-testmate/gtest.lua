@@ -104,10 +104,20 @@ end
 
 local rank = { skipped = 1, passed = 2, failed = 3 }
 
+--- Adds one test case of a run to `cases`, under its position name. Instances
+--- of a TEST_P or TYPED_TEST add up: failed if any failed, passed if any
+--- passed, otherwise skipped.
+local function add_case(cases, name, status, failures, message)
+    local entry = cases[name] or { status = status, failures = {} }
+    if rank[status] > rank[entry.status] then entry.status = status end
+    vim.list_extend(entry.failures, failures)
+    entry.message = message or entry.message
+    cases[name] = entry
+end
+
 --- Test cases in a report, by position name, as { status, failures, message }.
---- Instances of a TEST_P or TYPED_TEST add up: failed if any failed, passed if
---- any passed, otherwise skipped. nil without a report, as after a crash: GTest
---- writes it only at the end.
+--- nil without a report, as after a crash: GTest writes it only at the end
+--- (see read_output).
 function gtest.read_report(path)
     local parsed = xml.read(path)
     local run = parsed and parsed.testsuites
@@ -138,19 +148,118 @@ function gtest.read_report(path)
                     if not file then message = body end
                     table.insert(found, { file = file, line = tonumber(line), message = instance .. message })
                 end
-
-                local entry = cases[name] or { status = status, failures = {} }
-                if rank[status] > rank[entry.status] then entry.status = status end
-                vim.list_extend(entry.failures, found)
                 -- GTEST_SKIP's reason, after its "<file>:<line>" line.
+                local skip_message
                 for _, skipped in ipairs(xml.as_list(case.skipped)) do
                     local reason = xml.text(skipped):gsub("^[^\n]*:%d+\n", "")
-                    entry.message = "skipped: " .. instance .. reason
+                    skip_message = "skipped: " .. instance .. reason
                 end
-                cases[name] = entry
+                add_case(cases, name, status, found, skip_message)
             end
         end
     end
+    return cases
+end
+
+-- Names of the signals that end a test run most often. neotest reports a
+-- process killed by a signal as exit code 128 + the signal's number.
+local signals = {
+    [4] = "SIGILL",
+    [6] = "SIGABRT",
+    [7] = "SIGBUS",
+    [8] = "SIGFPE",
+    [9] = "SIGKILL",
+    [11] = "SIGSEGV",
+    [15] = "SIGTERM",
+}
+
+--- Why a run ended in the middle of a test, from its exit code.
+local function ending(code)
+    local signal = code - 128
+    if signal > 0 and signal < 64 then
+        return ("Crashed: %s (exit code %d)"):format(signals[signal] or ("signal " .. signal), code)
+    end
+    return ("The run ended during this test, with exit code %d"):format(code)
+end
+
+-- Status lines that end a test: the result, then the test's full name, ",
+-- where GetParam() = …" or ", where TypeParam = …" for an instance, and the
+-- time. The summary at the end of a run repeats them without the time.
+local endings = { ["       OK "] = "passed", ["  FAILED  "] = "failed", ["  SKIPPED "] = "skipped" }
+
+--- The position name of a test by its full name in the console output, e.g.
+--- "Hours/GreetAfternoon.CoversEachHour/2", and the prefix that marks an
+--- instance's messages.
+local function output_name(full_name)
+    local suite, name = full_name:match("^([^.]+)%.(.+)$")
+    if not suite then return nil end
+    -- As position_name expects them: a TEST_P's index follows its name, a
+    -- TYPED_TEST's its suite.
+    local value_param = name:find("/", 1, true) ~= nil
+    local type_param = not value_param and suite:find("/", 1, true) ~= nil
+    local position = position_name(suite, { name = name, value_param = value_param, type_param = type_param })
+    return position, full_name ~= position and ("[%s] "):format(full_name) or ""
+end
+
+--- Test cases in GTest's console output, as read_report gives them from a
+--- report, for a run that left none: GTest writes its report only at the
+--- end, so a crash leaves just the output. Tests that ended have their status
+--- and failures from it. The test still running when the output stops failed,
+--- with why from `code`, the run's exit code, as a failure marked `crash`.
+--- nil when no test started, e.g. when the executable didn't start at all.
+function gtest.read_output(output, code)
+    local cases, started = {}, false
+    -- The running test, as { full_name, failures, skip_lines }, and the lines
+    -- of the failure or skip message coming in.
+    local running, block
+
+    local function finish(status, crash_message)
+        local name, instance = output_name(running.full_name)
+        if name then
+            for _, failure in ipairs(running.failures) do
+                failure.message = instance .. table.concat(failure.lines, "\n")
+                failure.lines = nil
+            end
+            if crash_message then
+                table.insert(running.failures, { message = instance .. crash_message, crash = true })
+            end
+            local skip_message = running.skip_lines
+                and ("skipped: %s%s"):format(instance, table.concat(running.skip_lines, "\n"))
+            add_case(cases, name, status, running.failures, skip_message)
+        end
+        running, block = nil, nil
+    end
+
+    for line in vim.gsplit(output, "\n", { plain = true }) do
+        -- neotest runs the executable in a pty: lines end in \r, and GTest
+        -- colours its status lines.
+        line = line:gsub("\r$", ""):gsub("\27%[[%d;]*m", "")
+        local result, rest = line:match("^%[(..........)%] (.*)$")
+        if result == " RUN      " then
+            started = true
+            running, block = { full_name = rest, failures = {} }, nil
+        elseif running and endings[result] and rest:match(" %(%d+ ms%)$") then
+            finish(endings[result])
+        elseif running then
+            -- "<file>:<line>: Failure", or "unknown file: Failure" for an
+            -- exception thrown outside an assertion, then the message up to
+            -- an empty line. Other lines are the test's own output.
+            local file, line_number = line:match("^(.-):(%d+): Failure$")
+            if file or line == "unknown file: Failure" then
+                block = { file = file, line = tonumber(line_number), lines = {} }
+                table.insert(running.failures, block)
+            elseif line:match(":%d+: Skipped$") then
+                running.skip_lines = {}
+                block = { lines = running.skip_lines }
+            elseif line == "" then
+                block = nil
+            elseif block then
+                table.insert(block.lines, line)
+            end
+        end
+    end
+    if not started then return nil end
+    if running then finish("failed", ending(code)) end
     return cases
 end
 

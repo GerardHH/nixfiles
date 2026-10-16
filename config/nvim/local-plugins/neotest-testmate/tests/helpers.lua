@@ -18,6 +18,8 @@ local helpers = {}
 --                 /workspaces paths, so the adapter can't find them on the
 --                 host. The calculator and text packages have a test/main.cpp
 --                 without test cases.
+-- In each, a *crash_test* executable crashes on purpose: Catch2 v3 in
+-- cmake-catch2, v2 in colcon's text package, GTest in its greeter package.
 helpers.fixtures = vim.fs.normalize(vim.env.TESTMATE_FIXTURES or "tests/fixtures")
 
 --- Absolute path of a file in the fixtures; errors when it is missing.
@@ -57,7 +59,29 @@ function helpers.run_spec(spec, timeout)
     local result = done.wait()
     local output = nio.fn.tempname()
     lib.files.write(output, (result.stdout or "") .. (result.stderr or ""))
-    return { code = result.code, output = output }
+    -- neotest (nvim's jobstart) reports a process killed by a signal as
+    -- 128 + the signal's number; vim.system as code 0 and the signal apart.
+    local code = result.signal ~= 0 and 128 + result.signal or result.code
+    return { code = code, output = output }
+end
+
+--- Result per test name, from results keyed by position id, for specs that
+--- check messages and diagnostics, not only statuses.
+function helpers.test_results(tree, results)
+    local by_name = {}
+    for _, node in tree:iter_nodes() do
+        local position = node:data()
+        if position.type == "test" then by_name[position.name] = results[position.id] end
+    end
+    return by_name
+end
+
+--- 0-based number of the line in `file` that holds `text`, for diagnostics.
+function helpers.line_of(file, text)
+    for number, line in ipairs(vim.fn.readfile(file)) do
+        if line:find(text, 1, true) then return number - 1 end
+    end
+    error(("No %q in %s"):format(text, file))
 end
 
 --- Last lines of neotest's log, for failure messages.

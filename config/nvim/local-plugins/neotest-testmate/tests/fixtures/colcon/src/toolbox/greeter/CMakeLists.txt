@@ -40,4 +40,9 @@ if(BUILD_TESTING)
     add_executable(${PROJECT_NAME}_catch2_test test/${PROJECT_NAME}_catch2_test.cpp)
     target_link_libraries(${PROJECT_NAME}_catch2_test PRIVATE ${PROJECT_NAME} GTest::gmock Catch2::Catch2)
     add_test(NAME ${PROJECT_NAME}_catch2 COMMAND ${PROJECT_NAME}_catch2_test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+    # Crashes on purpose, for the adapter's crash reporting (see
+    # test/greeter_crash_test.cpp). Not registered with CTest.
+    add_executable(${PROJECT_NAME}_crash_test test/${PROJECT_NAME}_crash_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_crash_test PRIVATE GTest::gtest_main)
 endif()

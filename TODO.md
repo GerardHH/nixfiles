@@ -27,8 +27,9 @@ Supports Catch2 v2/v3 and, since 19dd9fd, GTest/GMock (`catch2.lua`,
 `tests/fixtures/`: `cmake-catch2` (Catch2 v3, built on the host) and `colcon`
 (a colcon workspace with its own `.devcontainer/`: Catch2 v2, GTest in
 `src/toolbox/greeter`, and there also a Catch2 test that mocks with GMock,
-`greeter_catch2_test.cpp`). Keep work project details out of this repo; facts
-only.
+`greeter_catch2_test.cpp`). Each has a `*crash_test*` executable that crashes
+on purpose, for `tests/unit/crash_spec.lua`. Keep work project details out of
+this repo; facts only.
 
 Specs: `make test` in the adapter's directory under `~/nixfiles` (plenary
 busted; `tests/unit` calls the adapter, `tests/integration` runs neotest
@@ -47,32 +48,19 @@ session scratchpad, `colcon`'s packages by plain CMake so `make container` runs
 on the host, and points `FIXTURES` there (configure offline with
 `-DFETCHCONTENT_SOURCE_DIR_CATCH2=` and `_GOOGLETEST=` the repo builds'
 `_deps/*-src`). DEBUG log for a run:
-`:lua require("neotest.logging"):set_level("debug")`, then
-`~/.local/state/nvim/neotest.log`.
-
-1. **Report crashes properly.** A SEGV in a Catch2 v2 test (`expected[4]`
-   on a 3-element vector, tried in `text_test.cpp` of `colcon`) shows as
-   `text_test.cpp:7: nil( {Unknown expression after the reported line} )`.
-   Catch2 v2's `handleFatalErrorCondition` reports it as an `<Expression>`
-   without `type` (the macro name is empty, and `writeAttribute` skips empty
-   values), with the signal in a `<FatalErrorCondition>` nested inside it:
-   `catch2.lua`'s `failures` reads only those next to the expressions. Fix:
-   take the nested `FatalErrorCondition` (and `Exception`, which also nests
-   there for an exception thrown inside an assertion) as the message, e.g.
-   `SIGSEGV - Segmentation violation signal`, and say the line is the last
-   assertion before the crash, not the crash itself (Catch2 doesn't know
-   that one). Check v3's report, and GTest's (no report at all after a
-   crash). Under the dap strategy the debugger already stops at the crash.
-2. **Say why a run failed outside the tests**, e.g. a workspace not sourced
-   before starting nvim. When an executable leaves no complete report,
-   `adapter.results` (`init.lua`) marks each test failed with only
-   `Exited with code %d without writing a complete report`; the reason is in
-   the run's output (`result.output`), which that message doesn't show. Fix:
-   add the end of that output to the message, and a hint for known causes,
-   e.g. exit code 127 with `error while loading shared libraries` → source
-   `install/setup.bash`. Check first what an unsourced run shows now, and
-   the dap strategy too.
-3. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
+1. **Say why a run failed outside the tests**, e.g. a workspace not sourced
+   before starting nvim. When an executable leaves no complete report, and
+   for GTest no test in its console output either (`gtest.read_output`
+   returns nil then), `adapter.results` (`init.lua`) marks each test failed
+   with only `Exited with code %d without writing a complete report`; the
+   reason is in the run's output (`printed` there), which that message
+   doesn't show. Fix: add the end of that output to the message, and a hint
+   for known causes, e.g. exit code 127 with
+   `error while loading shared libraries` → source `install/setup.bash`.
+   Check first what an unsourced run shows now, and the dap strategy too.
+   A spec like `crash_spec`'s "gives nothing when no test started" can pin
+   the message.
+2. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
    Open: own repo, vendoring neotest-ctest's Catch2 query (its only remaining
    use), README, CI for the specs in `tests/` (`make deps test`; needs the
    fixtures in `tests/fixtures` built by make, not by hand with CMake and
