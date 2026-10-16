@@ -33,6 +33,9 @@ command -v devcontainer >/dev/null || die "devcontainer is not on PATH; is pkgs.
 command -v podman >/dev/null || die "podman missing: sudo apt install --yes podman"
 
 WORKSPACE="$(realpath -- "${1:-${PWD}}")"
+if (($# > 0)); then
+    shift
+fi
 
 STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/nix-devcontainer/${WORKSPACE//\//-}"
 mkdir --parents "${STATE_DIR}/bash"
@@ -48,7 +51,7 @@ devcontainer up \
     --mount "type=bind,source=/nix,target=/nix" \
     --mount "type=bind,source=${NIXFILES_REPO_DIR},target=/home/ubuntu/nixfiles" \
     --mount "type=bind,source=${STATE_DIR}/bash,target=/home/ubuntu/.local/state/bash" \
-    --remove-existing-container
+    "$@"
 
 # Podman creates missing parents of a mount target as root; hand them back.
 podman exec \
