@@ -9,6 +9,12 @@
   over the network, or "read-only" if nothing — then the reason for running it
   (e.g. `Overwrite scratchpad script — fixes the separator bug`;
   `Search repo for encrypted files, read-only — checks the corrected finder`).
+- Write commands I approve so I can review them at a glance: one step per
+  line, with a comment above each step that isn't obvious, instead of long
+  `&&` chains. Give variables descriptive names (`test_repository`, not `r`)
+  and set them close to where they're used. Every `rm` names its target in
+  full, or through a variable set a few lines above it, so I can see what
+  gets deleted without hunting.
 - When proposing edits to file contents, give them per file: the file path,
   the line range being replaced (or "insert after line N"), numbered against
   the file's current contents, and the complete new text for that range in a
