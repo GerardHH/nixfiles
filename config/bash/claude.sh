@@ -18,6 +18,19 @@ _claude_directories() {
     proposals="/tmp/claude-$(id --user)/${repository##*/}"
 }
 
+# Lists the proposed files not taken yet: missing from the repository, or
+# different from it. Shared by _claude_pick and claude-clean.
+# Globals:
+#   repository, proposals - read; set by _claude_directories in the caller
+# Outputs:
+#   Writes one path per line to stdout, relative to the repository root.
+_claude_untaken() {
+    local path
+    find "${proposals}" -type f -printf '%P\n' | sort | while IFS= read -r path; do
+        cmp --silent -- "${proposals}/${path}" "${repository}/${path}" || printf '%s\n' "${path}"
+    done
+}
+
 # Lists the proposed files to act on.
 # Arguments:
 #   $@ - optional; paths of files in the repository, relative to the working
@@ -48,10 +61,7 @@ _claude_pick() {
     preview="diff --unified --new-file --color=always --"
     preview+=" $(printf '%q' "${repository}")/{} $(printf '%q' "${proposals}")/{}"
 
-    local path
-    find "${proposals}" -type f -printf '%P\n' | sort | while IFS= read -r path; do
-        cmp --silent -- "${proposals}/${path}" "${repository}/${path}" || printf '%s\n' "${path}"
-    done | fzf --multi --preview "${preview}"
+    _claude_untaken | fzf --multi --preview "${preview}"
 }
 
 # Opens each proposed file next to the file it replaces in nvim's diff mode.
@@ -69,9 +79,10 @@ claude-diff() {
     done
 }
 
-# Copies proposed files into the repository, creating directories as needed.
-# The proposed files stay, so a working copy such as TODO.md lasts across
-# sessions; once copied, a file no longer shows up in the fzf list.
+# Copies proposed files into the repository, creating directories as needed,
+# then deletes each one it copied, and directories that leaves empty: what
+# stays in the proposals directory is what's still pending. A working copy such
+# as TODO.md goes too; Claude starts the next one from the repository's file.
 # Arguments:
 #   $@ - optional; see _claude_pick
 # Outputs:
@@ -89,6 +100,53 @@ claude-take() {
             continue
         fi
         mkdir --parents -- "$(dirname -- "${repository}/${path}")"
-        cp --preserve=mode --verbose -- "${proposals}/${path}" "${repository}/${path}"
+        cp --preserve=mode --verbose -- "${proposals}/${path}" "${repository}/${path}" || continue
+        # Taken, so no longer a proposal. rmdir runs inside the proposals
+        # directory with a relative path, so --parents stops below it.
+        rm -- "${proposals}/${path}"
+        if [[ ${path} == */* ]]; then
+            (cd -- "${proposals}" && rmdir --parents --ignore-fail-on-non-empty -- "${path%/*}")
+        fi
     done
+    # After the last proposal, the directory itself goes too, so the next
+    # claude-diff or claude-take says there's nothing, instead of an empty fzf.
+    if [[ -d ${proposals} ]]; then
+        rmdir --ignore-fail-on-non-empty -- "${proposals}"
+    fi
+}
+
+# Deletes the directory of proposed files for the repository, so outdated
+# proposals don't pile up across sessions. Without untaken files it deletes
+# right away; otherwise it lists them and asks first, as they'd be lost. A
+# working copy such as TODO.md counts as taken once it matches the repository,
+# and Claude starts a new one from the repository next session.
+# Outputs:
+#   Writes the untaken files to stdout, and the question and result to stderr.
+# Returns:
+#   Non-zero outside a git repository, or when the deletion is declined.
+claude-clean() {
+    local repository proposals
+    _claude_directories || return
+
+    if [[ ! -d ${proposals} ]]; then
+        printf 'No proposed files in %s\n' "${proposals}" >&2
+        return
+    fi
+    # A guard for the rm below: a repository at / would leave the name empty,
+    # and proposals would be /tmp/claude-<uid>/ itself, Claude Code's own
+    # session files included.
+    if [[ ${proposals} != /tmp/claude-+([0-9])/+([^/]) ]]; then
+        printf 'Refusing to delete %s\n' "${proposals}" >&2
+        return 1
+    fi
+
+    local untaken answer
+    mapfile -t untaken < <(_claude_untaken)
+    if ((${#untaken[@]} > 0)); then
+        printf '%s\n' "${untaken[@]}"
+        read -r -p "Delete ${proposals}, with the ${#untaken[@]} untaken files above? [y/N] " answer
+        [[ ${answer} == [yY] ]] || return 1
+    fi
+    rm --recursive --force -- "${proposals}"
+    printf 'Deleted %s\n' "${proposals}" >&2
 }

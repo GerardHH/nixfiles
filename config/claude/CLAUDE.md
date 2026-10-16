@@ -20,13 +20,18 @@
   recognize. List a file's edits top to bottom, all numbered against the
   unedited file. No diffs, and no sed/awk/heredoc commands in place of showing
   the edit. Shell commands that do not edit the files text content are fine.
-- When the new content for a single file is longer than a screen (about 50
-  lines), don't paste it in chat. Write the complete file to
-  `/tmp/claude-1000/<project>/<path in project>` instead (e.g.
-  `/tmp/claude-1000/nixfiles/config/nvim/lua/plugins/new-plugin.lua`), then
-  give its path and the `cp` command that puts it in place. For an existing
-  file, write the whole edited file, so I can review it with `nvim -d` before
-  copying. Shorter changes stay inline.
+- Also write every file you propose, short change or long, as the complete
+  file to `/tmp/claude-1000/<project>/<path in project>` (e.g.
+  `/tmp/claude-1000/nixfiles/config/nvim/lua/plugins/new-plugin.lua`). Start
+  from the project's current file; one already there that differs from it is
+  a proposal I haven't taken yet, so build on it or ask. Then give the
+  commands from `config/bash/claude.sh` in nixfiles, with paths relative to
+  where I run them: `claude-diff <paths>` to review, `claude-take <paths>` to
+  copy them in (it deletes what it took). Not `cp` or `nvim -d`. In chat, show
+  changes up to about 50 lines per file as above; longer ones only by path.
+- That directory holds only proposed files, at their path in the project.
+  Scratch builds, copies for running tests, and logs go in the session
+  scratchpad.
 - Indent with spaces, never tabs. Before showing code, format it with the
   project's own formatters and their configs (e.g. `.editorconfig`,
   `.stylua.toml`, `.clang-format`), run on a scratchpad copy rather than on my
