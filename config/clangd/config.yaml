@@ -1,0 +1,23 @@
+# Standard library headers outside any project, as opened from a debugger's
+# stack frame or by go-to-definition. clangd has no compile command for them,
+# and its fallback can't tell the language from names like basic_string.tcc
+# or string: "Failed to parse command line", so every request failed with
+# "invalid AST". Saying they're C++ headers gets them an AST. Their
+# diagnostics are noise: these headers aren't meant to compile on their own.
+If:
+  PathMatch: .*/include/c\+\+/.*
+CompileFlags:
+  Add: [-xc++-header]
+Diagnostics:
+  Suppress: "*"
+---
+# libstdc++'s headers (versioned dirs such as c++/13; libc++'s c++/v1 has no
+# such header) mostly don't include bits/c++config.h, which defines the macros
+# their #if blocks test, such as _GLIBCXX_USE_CXX11_ABI. Without it clangd
+# marked most of basic_string.tcc inactive (616 of 1026 lines grey), and
+# go-to-definition found nothing. With it: 67 lines, the branches that really
+# are inactive, and calls resolve.
+If:
+  PathMatch: .*/include/c\+\+/[0-9][^/]*/.*
+CompileFlags:
+  Add: [-include, bits/c++config.h]

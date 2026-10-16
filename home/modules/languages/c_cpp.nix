@@ -1,4 +1,10 @@
-{ pkgs, ... }:
+{
+    config,
+    lib,
+    link,
+    pkgs,
+    ...
+}:
 {
     languages.c_cpp = {
         packages = with pkgs; [
@@ -21,5 +27,9 @@
             "cpp"
             "cmake"
         ];
+    };
+
+    xdg.configFile."clangd" = lib.mkIf config.languages.c_cpp.enable {
+        source = link "config/clangd";
     };
 }
