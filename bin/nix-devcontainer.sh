@@ -56,8 +56,11 @@ if (($# > 0)); then
     command_arguments=("$@")
 fi
 
-STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/nix-devcontainer/${WORKSPACE//\//-}"
-mkdir --parents "${STATE_DIR}/bash"
+# Bash history per workspace, in a named podman volume rather than a host
+# directory: it outlives a rebuilt container, and goes with podman's own
+# cleanup (podman volume rm, or podman system prune --volumes). Volume names
+# allow only [a-zA-Z0-9_.-], so other characters of the path become '-'.
+HISTORY_VOLUME="nix-devcontainer-bash${WORKSPACE//[^a-zA-Z0-9_.-]/-}"
 
 default_options=(
     --docker-path podman
@@ -69,14 +72,15 @@ devcontainer up \
     --mount "type=bind,source=/etc/nix,target=/etc/nix" \
     --mount "type=bind,source=/nix,target=/nix" \
     --mount "type=bind,source=${NIXFILES_REPO_DIR},target=/home/ubuntu/nixfiles" \
-    --mount "type=bind,source=${STATE_DIR}/bash,target=/home/ubuntu/.local/state/bash" \
+    --mount "type=volume,source=${HISTORY_VOLUME},target=/home/ubuntu/.local/state/bash" \
     "${up_arguments[@]}"
 
-# Podman creates missing parents of a mount target as root; hand them back.
+# Podman creates missing parents of a mount target as root, and a new volume
+# belongs to root too; hand them back.
 podman exec \
     --user root \
     "$(podman ps --quiet --filter "label=devcontainer.local_folder=${WORKSPACE}")" \
-    chown ubuntu:ubuntu /home/ubuntu/.local /home/ubuntu/.local/state
+    chown ubuntu:ubuntu /home/ubuntu/.local /home/ubuntu/.local/state /home/ubuntu/.local/state/bash
 
 # Bootstrap nixfiles environment before dropping in.
 #shellcheck disable=SC2088

@@ -4,8 +4,8 @@
 HISTSIZE=5000
 HISTFILESIZE=5000
 
-# In a dev container, ~/.local/state/bash links to a per-workspace host directory
-# (see bin/nix-devcontainer.sh). Bash doesn't create the directory itself.
+# In a dev container, ~/.local/state/bash is a per-workspace named volume (see
+# bin/nix-devcontainer.sh). Bash doesn't create the directory itself.
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/bash/history"
 [[ -d "${HISTFILE%/*}" ]] || mkdir --parents "${HISTFILE%/*}"
 
