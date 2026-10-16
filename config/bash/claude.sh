@@ -64,7 +64,7 @@ _claude_pick() {
     _claude_untaken | fzf --multi --preview "${preview}"
 }
 
-# Opens each proposed file next to the file it replaces in nvim's diff mode.
+# Opens the proposed files in one nvim, with nvim's built-in difftool.
 # Arguments:
 #   $@ - optional; see _claude_pick
 claude-diff() {
@@ -73,10 +73,32 @@ claude-diff() {
 
     local paths path
     mapfile -t paths < <(_claude_pick "$@")
+    ((${#paths[@]} > 0)) || return 0
 
+    # The difftool compares two directories, and would list every repository
+    # file without a proposal, and every proposal not picked. So it gets two
+    # directories with links to the picked files only. It resolves the links,
+    # so its windows hold the real files, and saves go to the repository. A
+    # new file has no link on the repository side and shows as added.
+    local view
+    view="$(mktemp --directory)" || return
+    mkdir --parents -- "${view}/repository" "${view}/proposals"
     for path in "${paths[@]}"; do
-        nvim -d -- "${repository}/${path}" "${proposals}/${path}"
+        if [[ ! -f ${proposals}/${path} ]]; then
+            printf 'No proposed file for %s in %s\n' "${path}" "${proposals}" >&2
+            continue
+        fi
+        mkdir --parents -- "$(dirname -- "${view}/repository/${path}")" "$(dirname -- "${view}/proposals/${path}")"
+        if [[ -e ${repository}/${path} ]]; then
+            ln --symbolic -- "${repository}/${path}" "${view}/repository/${path}"
+        fi
+        ln --symbolic -- "${proposals}/${path}" "${view}/proposals/${path}"
     done
+
+    # nvim -d with two directories hands them to the difftool.
+    nvim -d "${view}/repository" "${view}/proposals"
+    # Only the links go; rm doesn't follow them.
+    rm --recursive --force -- "${view}"
 }
 
 # Copies proposed files into the repository, creating directories as needed,
