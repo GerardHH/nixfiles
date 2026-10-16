@@ -11,7 +11,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC src)
 include(CTest)
 if(BUILD_TESTING)
     # GTest and GMock, where the other packages use Catch2: the test bed for
-    # neotest-testmate's GTest support.
+    # neotest-testmate's GTest support. Catch2 too, for a Catch2 test that
+    # mocks with GMock.
     include(FetchContent)
     FetchContent_Declare(
         googletest
@@ -20,11 +21,23 @@ if(BUILD_TESTING)
         GIT_SHALLOW TRUE)
     # Keep googletest's own headers and libraries out of this package's install space.
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
+    FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v2.13.10
+        GIT_SHALLOW TRUE)
+    FetchContent_MakeAvailable(googletest Catch2)
 
     # One executable per package, registered with CTest as a single test, like
     # the Catch2 packages. gmock_main provides main().
     add_executable(${PROJECT_NAME}_test test/${PROJECT_NAME}_test.cpp)
     target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} GTest::gmock_main)
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME}_test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+    # Catch2 with GMock's mocks, a second executable: gmock without _main, as
+    # the test file's CATCH_CONFIG_MAIN provides main(). The adapter has to
+    # tell the two apart by framework, though both include gmock.h.
+    add_executable(${PROJECT_NAME}_catch2_test test/${PROJECT_NAME}_catch2_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_catch2_test PRIVATE ${PROJECT_NAME} GTest::gmock Catch2::Catch2)
+    add_test(NAME ${PROJECT_NAME}_catch2 COMMAND ${PROJECT_NAME}_catch2_test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 endif()

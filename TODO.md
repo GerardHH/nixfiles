@@ -99,43 +99,45 @@ neotest and nvim-dap for the work setup, through
 executables directly, like VSCode's C++ TestMate, instead of through CTest.
 Supports Catch2 v2/v3 and, since 19dd9fd, GTest/GMock (`catch2.lua`,
 `gtest.lua`, `xml.lua`; framework picked by `#include`). Test bed:
-`dev-container-tests/colcon-catch2/`, with GTest in `src/toolbox/greeter`. Keep
-work project details out of this repo; facts only.
+`dev-container-tests/colcon-catch2/`, with GTest in `src/toolbox/greeter`, and
+there also a Catch2 test that mocks with GMock (`greeter_catch2_test.cpp`).
+Keep work project details out of this repo; facts only.
 
 Specs: `make test` in the adapter's directory (plenary busted; `tests/unit`
 calls the adapter, `tests/integration` runs neotest itself), with
 `DEPS=$HOME/.local/share/nvim/lazy FIXTURES=$HOME/nixfiles/dev-container-tests`.
+`make container` (`tests/container`, a `<leader>tp` suite run of
+`colcon-catch2`) needs the test bed built where it runs: in its container after
+`colcon build`, with `FIXTURES=/workspaces/nixfiles/dev-container-tests` (the
+devcontainer CLI mounts the whole repo there; `~/nixfiles` won't do, as the
+executables embed the `/workspaces` paths).
 In Claude's sandbox the fixtures must be on a writable path: neotest's
 `lib.files.exists` uses `os.rename(path, path)`, which fails on the read-only
-repo (EROFS), so discovery silently finds nothing. A scratch build of
-`cmake-catch2` is in `/tmp/claude-1000/nixfiles/fixtures/` until reboot.
-DEBUG log for a run: `:lua require("neotest.logging"):set_level("debug")`,
-then `~/.local/state/nvim/neotest.log`.
+repo (EROFS), so discovery silently finds nothing. Scratch builds of
+`cmake-catch2` and `colcon-catch2` (its packages built by plain CMake, so
+`make container` runs on the host) are in `/tmp/claude-1000/nixfiles/fixtures/`
+until reboot (configure offline with `-DFETCHCONTENT_SOURCE_DIR_CATCH2=` and
+`_GOOGLETEST=` the repo builds' `_deps/*-src`). DEBUG log for a run:
+`:lua require("neotest.logging"):set_level("debug")`, then
+`~/.local/state/nvim/neotest.log`.
 
-1. **Catch2 with GMock in the test bed:** a Catch2 test file that uses GMock
-   and includes `gmock/gmock.h` before Catch2's header, with a unit spec that
-   it gets its test cases (`detect()` goes by framework order, Catch2 first,
-   over all includes).
-2. **Check a suite run in the container test bed** (`<leader>tp` in
-   `colcon-catch2`): the two `test/main.cpp` files (only
-   `CATCH_CONFIG_MAIN`) come out skipped with "No test cases in file
-   main.cpp", and the rest runs. The specs cover running such a file, not a
-   suite run, as the host can't run the container-built executables.
-3. **Stay in the debugger when a test fails,** as TestMate does
+1. **Stay in the debugger when a test fails,** as TestMate does
    (`testMate.cpp.debug.breakOnFailure`, on by default). Under the dap
    strategy, add `--break` for Catch2 and `--gtest_break_on_failure` for
    GTest; both trap at the failing assertion, so codelldb stops there with
    the stack. Check that the report still gets written, or that the
    interrupted run keeps the previous results (as `results` does now).
-4. **Rename the test bed** to `dev-container-tests/colcon-neotest-testmate`
+2. **Rename the test bed** to `dev-container-tests/colcon-neotest-testmate`
    (`git mv`), as it targets the adapter, not Catch2. Also update `name` in
-   its `.devcontainer/devcontainer.json` (`nixfiles-colcon-catch2`). The
-   per-workspace bash history from `bin/nix-devcontainer.sh` is keyed on the
-   path, so it starts empty.
-5. **Verify GTest at work** on a GTest package, including `td`. A `TEST_P`
+   its `.devcontainer/devcontainer.json` (`nixfiles-colcon-catch2`), and the
+   `colcon-catch2` fixture paths in the adapter's `tests/` (`helpers.lua`
+   and the unit, integration and container specs). The per-workspace bash
+   history from `bin/nix-devcontainer.sh` is keyed on the path, so it starts
+   empty.
+3. **Verify GTest at work** on a GTest package, including `td`. A `TEST_P`
    or `TYPED_TEST` is one neotest test; its instances add up in the results.
    Not supported: `TYPED_TEST_P`.
-6. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
+4. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
    Open: own repo, vendoring neotest-ctest's Catch2 query (its only remaining
    use), README, CI for the specs in `tests/` (`make deps test`; needs
    fixtures in `tests/fixtures`, small Catch2 and GTest projects built by

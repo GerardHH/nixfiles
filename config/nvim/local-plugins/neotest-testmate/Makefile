@@ -1,6 +1,8 @@
 # Specs for neotest-testmate, run by plenary.nvim's busted in headless nvim,
 # laid out like neotest-ctest's: tests/unit calls the adapter's functions
-# directly, tests/integration runs it through neotest itself.
+# directly, tests/integration runs it through neotest itself. tests/container
+# needs the colcon test bed built where the specs run, so it is left out of
+# `make test`: see the container target.
 #
 # Everything runs in a sandbox of XDG directories, so neither your own nvim
 # config nor its state and logs take part (neotest.log ends up in
@@ -13,7 +15,7 @@
 # PLUGIN picks the adapter under test, e.g. an older commit's tree, to tell a
 # regression from a problem in the specs.
 
-.PHONY: test unit integration deps clean
+.PHONY: test unit integration container deps clean
 
 SANDBOX ?= .sandbox
 # Plugin checkouts the specs load: plenary.nvim, nvim-nio, neotest and
@@ -52,6 +54,17 @@ unit:
 integration:
 	@mkdir --parents $(XDG_STATE_HOME)
 	$(call BUSTED,tests/integration)
+
+# A suite run of the colcon test bed. The adapter finds an executable by the
+# source paths in it, so run this in the test bed's container after a
+# `colcon build`, with FIXTURES at the path the build saw: the devcontainer
+# CLI mounts the whole nixfiles repo under /workspaces, not the test bed alone.
+#
+#   make container DEPS=$HOME/.local/share/nvim/lazy \
+#       FIXTURES=/workspaces/nixfiles/dev-container-tests
+container:
+	@mkdir --parents $(XDG_STATE_HOME)
+	$(call BUSTED,tests/container)
 
 # Shallow clones of the dependencies, for CI; skipped when DEPS already has them.
 deps:

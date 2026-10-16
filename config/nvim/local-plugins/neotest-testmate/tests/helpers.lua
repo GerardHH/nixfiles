@@ -9,9 +9,10 @@ local helpers = {}
 -- Built C++ projects, by name; for now nixfiles' dev-container-tests:
 --   cmake-catch2   Catch2 v3, built on the host by CMake.
 --   colcon-catch2  colcon workspace with GTest/GMock in src/toolbox/greeter,
---                  built in the container: its executables embed /workspaces
---                  paths, so the adapter can't find them on the host. Its
---                  Catch2 packages have a test/main.cpp without test cases.
+--                  next to a Catch2 test there that mocks with GMock. Built in
+--                  the container: its executables embed /workspaces paths, so
+--                  the adapter can't find them on the host. The calculator and
+--                  text packages have a test/main.cpp without test cases.
 helpers.fixtures = vim.fs.normalize(vim.env.TESTMATE_FIXTURES or "tests/fixtures")
 
 --- Absolute path of a file in the fixtures; errors when it is missing.
@@ -76,6 +77,8 @@ function helpers.start_neotest(root)
         adapters = { require("neotest-testmate") },
         consumers = {
             probe = function(client)
+                -- For helpers.run_suite, which needs the whole project's tree.
+                probe.client = client
                 for _, event in ipairs({ "starting", "started", "run" }) do
                     client.listeners[event] = function() table.insert(probe.events, event) end
                 end
@@ -86,10 +89,9 @@ function helpers.start_neotest(root)
                 end
                 client.listeners.results = function(_, results, partial)
                     table.insert(probe.events, partial and "results (partial)" or "results")
-                    if not partial and probe.finished then
-                        probe.results = results
-                        probe.finished.set()
-                    end
+                    -- Set by run_file and run_suite: they differ in how many
+                    -- results events make a finished run.
+                    if not partial and probe.on_results then probe.on_results(results) end
                 end
                 return {}
             end,
@@ -98,16 +100,14 @@ function helpers.start_neotest(root)
     return probe
 end
 
---- Runs `file` through neotest, as <leader>tf does, and returns the file's
---- tree and the run's results by position id. Errors when no results come
---- within TESTMATE_TIMEOUT ms (default 30000, less than PLENARY_TEST_TIMEOUT
---- so this message wins), with the events seen and the end of neotest.log.
-function helpers.run_file(probe, file)
-    local timeout = tonumber(vim.env.TESTMATE_TIMEOUT) or 30000
-    probe.finished = nio.control.event()
-    nio.api.nvim_command("edit " .. vim.fn.fnameescape(file))
-    require("neotest").run.run(file)
+-- Read once, here: after neotest.run.run, a spec may be in a fast event
+-- context, where vim.env (getenv) is not allowed.
+local timeout = tonumber(vim.env.TESTMATE_TIMEOUT) or 30000
 
+--- Waits for `probe.finished`. Errors when it isn't set within
+--- TESTMATE_TIMEOUT ms (default 30000, less than PLENARY_TEST_TIMEOUT so this
+--- message wins), with the events seen and the end of neotest.log.
+local function wait_for_results(probe)
     nio.first({ probe.finished.wait, function() nio.sleep(timeout) end })
     if not probe.finished.is_set() then
         error(
@@ -118,11 +118,68 @@ function helpers.run_file(probe, file)
             )
         )
     end
+end
+
+--- Runs `file` through neotest, as <leader>tf does, and returns the file's
+--- tree and the run's results by position id. Errors when no results come
+--- in time (see wait_for_results).
+function helpers.run_file(probe, file)
+    probe.finished = nio.control.event()
+    probe.on_results = function(results)
+        probe.results = results
+        probe.finished.set()
+    end
+    nio.api.nvim_command("edit " .. vim.fn.fnameescape(file))
+    require("neotest").run.run(file)
+
+    wait_for_results(probe)
     for _, tree in ipairs(probe.trees) do
         local node = tree:get_key(file)
         if node then return node, probe.results end
     end
     error("Results came, but no discovery of " .. file)
+end
+
+--- Runs the whole project through neotest, as <leader>tp does, and returns
+--- the project's tree and the results by position id. neotest runs a suite
+--- file by file, each with its own results event, so they are merged until
+--- every one of `files` has a result; errors when that takes too long (see
+--- wait_for_results).
+function helpers.run_suite(probe, files)
+    probe.finished = nio.control.event()
+    local merged = {}
+    probe.on_results = function(results)
+        for id, result in pairs(results) do
+            merged[id] = result
+        end
+        for _, file in ipairs(files) do
+            if not merged[file] then return end
+        end
+        probe.finished.set()
+    end
+    require("neotest").run.run({ suite = true })
+
+    wait_for_results(probe)
+    local adapter_id = probe.client:get_adapters()[1]
+    return probe.client:get_position(nil, { adapter = adapter_id }), merged
+end
+
+--- Errors unless `executable` holds the path of `source`, the way the adapter
+--- finds an executable: a build made elsewhere, such as in the container for
+--- specs run on the host, embeds other paths. Says so up front, rather than
+--- through a run that never finishes.
+function helpers.require_build(executable, source)
+    local file = io.open(executable, "rb")
+    local content = file and file:read("*a")
+    if file then file:close() end
+    if not (content and content:find(source, 1, true)) then
+        error(
+            ("%s %s, not here: build the fixture where the specs run, e.g. in its container"):format(
+                executable,
+                content and ("was built for other paths than " .. source) or "is missing"
+            )
+        )
+    end
 end
 
 return helpers

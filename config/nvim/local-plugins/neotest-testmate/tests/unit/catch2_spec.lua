@@ -39,3 +39,14 @@ describe("Catch2", function()
         }, helpers.statuses(tree, adapter.results(spec, result, tree)))
     end)
 end)
+
+-- Discovery only: the executable is built in the container (see gtest_spec).
+describe("Catch2 with GMock", function()
+    local file = helpers.fixture("colcon-catch2/src/toolbox/greeter/test/greeter_catch2_test.cpp")
+
+    it("discovers a file that includes gmock.h before Catch2", function()
+        local tree = adapter.discover_positions(file)
+        assert.is_not_nil(tree, "no positions: framework not detected?")
+        assert.same({ "greet in the morning", "greet in the evening" }, helpers.test_names(tree))
+    end)
+end)
