@@ -17,8 +17,8 @@ macros:
   - name: reload-config
     commands:
       - display "#{log_info} Loading config... "
-      - source-file $HOME/.tmux.conf
-      - display -p "\n\n... Press ENTER to continue"
+      - source-file $HOME/.config/tmux/tmux.conf
+      - display -d 2000 "#{log_info} Config reloaded"
   - name: restart-pane
     commands:
       - display "#{log_info} Restarting pane"
@@ -259,9 +259,6 @@ items:
         key: Z
         command: suspendc
       - separator: true
-      - name: Reload config
-        key: r
-        macro: reload-config
       - name: Customize
         key: ","
         command: customize-mode -Z
@@ -272,6 +269,9 @@ items:
   - name: Show messages
     key: "~"
     command: show-messages
+  - name: Reload config
+    key: R
+    macro: reload-config
   - name: +Keys
     key: "?"
     command: list-keys -N
