@@ -42,6 +42,18 @@ alias lg='lazygit'
 alias top='btop'
 alias vi='nvim'
 
+# Reloads the bash config by replacing this shell with a new one.
+bash-reload() {
+    # exec would leave background jobs without their shell, so refuse.
+    if [[ -n $(jobs -p) ]]; then
+        jobs >&2
+        printf 'bash-reload: this shell has jobs; end them first\n' >&2
+        return 1
+    fi
+    # The running binary, not whatever `bash` PATH finds first.
+    exec "${BASH}"
+}
+
 # Exports
 export EDITOR="nvim"
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
