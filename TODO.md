@@ -121,12 +121,15 @@ until reboot (configure offline with `-DFETCHCONTENT_SOURCE_DIR_CATCH2=` and
 `:lua require("neotest.logging"):set_level("debug")`, then
 `~/.local/state/nvim/neotest.log`.
 
-1. **Stay in the debugger when a test fails,** as TestMate does
-   (`testMate.cpp.debug.breakOnFailure`, on by default). Under the dap
-   strategy, add `--break` for Catch2 and `--gtest_break_on_failure` for
-   GTest; both trap at the failing assertion, so codelldb stops there with
-   the stack. Check that the report still gets written, or that the
-   interrupted run keeps the previous results (as `results` does now).
+1. **Try break on failure in nvim** (`break_on_failure`, on by default;
+   the dap strategy adds the framework's `break_arguments`): debug the
+   deliberately failing test in `cmake-catch2` and in `greeter_test` with
+   codelldb. Verified under gdb: on x86 both trap with `int3` (Catch2 one
+   frame below the test's line, GTest two, in `AddTestPartResult`);
+   continuing finishes the run with a complete report. Stopping the session
+   leaves a report that doesn't parse (even when cut right after a
+   `</TestCase>`), so `results` keeps the previous results. Check that
+   codelldb continues past the trap the same way.
 2. **Rename the test bed** to `dev-container-tests/colcon-neotest-testmate`
    (`git mv`), as it targets the adapter, not Catch2. Also update `name` in
    its `.devcontainer/devcontainer.json` (`nixfiles-colcon-catch2`), and the

@@ -22,6 +22,9 @@ local options = {
     executable_glob = "*test*",
     -- nvim-dap adapter for the dap strategy.
     dap_adapter = "codelldb",
+    -- Under the dap strategy, stop in the debugger at a failing assertion, as
+    -- TestMate's testMate.cpp.debug.breakOnFailure does (also on by default).
+    break_on_failure = true,
 }
 
 function adapter.setup(opts)
@@ -164,12 +167,19 @@ function adapter.build_spec(args)
         context = { framework = framework.name, report = report, debug = args.strategy == "dap" },
     }
     if spec.context.debug then
+        -- Only the debugger gets the break arguments; spec.command stays as
+        -- a normal run. Stopping the session at the trap leaves no complete
+        -- report, so `results` keeps the previous results.
+        local debug_arguments = arguments
+        if options.break_on_failure then
+            debug_arguments = vim.list_extend(vim.list_slice(arguments), framework.break_arguments)
+        end
         spec.strategy = {
             type = options.dap_adapter,
             request = "launch",
             name = "Debug " .. position.name,
             program = executable,
-            args = arguments,
+            args = debug_arguments,
             cwd = cwd,
         }
     end

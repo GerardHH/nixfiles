@@ -84,6 +84,12 @@ function gtest.arguments(tests, report)
     return { "--gtest_filter=" .. table.concat(filters, ":"), "--gtest_output=xml:" .. report }
 end
 
+-- Extra arguments for a debug run that stops at a failing assertion. GTest
+-- traps in UnitTest::AddTestPartResult, two frames below the test's line;
+-- continuing finishes the run and writes the report. It traps whether or not
+-- a debugger is attached, so these never go into a normal run.
+gtest.break_arguments = { "--gtest_break_on_failure" }
+
 --- The position name a test case in the report belongs to: Suite.Name, with
 --- the instance parts of TEST_P and TYPED_TEST names taken off.
 local function position_name(suite, case)

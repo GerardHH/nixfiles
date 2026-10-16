@@ -22,6 +22,11 @@ function catch2.arguments(tests, report)
     return { table.concat(filters, ","), "--reporter", "xml", "--out", report }
 end
 
+-- Extra arguments for a debug run that stops at a failing assertion. Catch2
+-- traps only when it sees a debugger attached, one frame below the test's
+-- line; continuing finishes the run and writes the report.
+catch2.break_arguments = { "--break" }
+
 -- Failed assertions, exceptions and fatal signals anywhere in a test case,
 -- sections included, as { file, line, message }.
 local function failures(element, found)
