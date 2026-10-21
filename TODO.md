@@ -15,6 +15,13 @@ Delete an item when it's done; git history keeps it.
 
 ## Inbox
 
+- 2026-10-21 · Give Claude Code and Copilot CLI access to language servers
+  (clangd, nixd, …), as Copilot has through VSCode: definitions, references and
+  diagnostics instead of grep. Claude Code already has an `LSP` tool (fed by
+  plugins); check what it needs to use our servers, and whether Copilot CLI has
+  the same or can get it through MCP. Ties in with "Copilot CLI in the
+  container" in Next.
+
 ## Now
 
 ### 2026-10-16 · neotest in a container with colcon/ROS 2
