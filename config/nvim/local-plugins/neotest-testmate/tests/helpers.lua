@@ -148,15 +148,16 @@ end
 
 --- Runs `file` through neotest, as <leader>tf does, and returns the file's
 --- tree and the run's results by position id. Errors when no results come
---- in time (see wait_for_results).
-function helpers.run_file(probe, file)
+--- in time (see wait_for_results). `strategy`, e.g. "dap", is neotest's
+--- strategy for the run; its default without.
+function helpers.run_file(probe, file, strategy)
     probe.finished = nio.control.event()
     probe.on_results = function(results)
         probe.results = results
         probe.finished.set()
     end
     nio.api.nvim_command("edit " .. vim.fn.fnameescape(file))
-    require("neotest").run.run(file)
+    require("neotest").run.run(strategy and { file, strategy = strategy } or file)
 
     wait_for_results(probe)
     for _, tree in ipairs(probe.trees) do

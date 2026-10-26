@@ -220,6 +220,54 @@ local function no_report_message(code, printed)
     return table.concat(lines, "\n")
 end
 
+-- Each test's last result, by position id, for a debug session that ends
+-- without a report (see adapter.results). neotest drops a test's result as a
+-- run of it starts, before the adapter sees that run, so the adapter keeps
+-- its own. In memory, like neotest's, and the same tables: an entry per test.
+-- Not on disk: a result's output is a temporary file, gone with nvim.
+local last_results = {}
+
+--- Adds the results of files and namespaces: failed when any of their tests
+--- failed, passed when one passed, skipped otherwise.
+local function add_parent_results(tree, results, output)
+    for _, node in tree:iter_nodes() do
+        local position = node:data()
+        if position.type ~= "test" then
+            local status = "skipped"
+            for _, child in node:iter_nodes() do
+                local child_result = results[child:data().id]
+                if child_result and child_result.status == "failed" then
+                    status = "failed"
+                    break
+                elseif child_result and child_result.status == "passed" then
+                    status = "passed"
+                end
+            end
+            results[position.id] = { status = status, output = output }
+        end
+    end
+end
+
+--- Results for a debug session that ended without a report: each test's
+--- last result, or skipped for a test without one. Returning none instead
+--- makes neotest mark every test failed, without a message.
+local function previous_results(tree, output)
+    local results = {}
+    for _, node in tree:iter_nodes() do
+        local position = node:data()
+        if position.type == "test" then
+            results[position.id] = last_results[position.id]
+                or {
+                    status = "skipped",
+                    short = "not run yet: the debug session ended before its report",
+                    output = output,
+                }
+        end
+    end
+    add_parent_results(tree, results, output)
+    return results
+end
+
 function adapter.results(spec, result, tree)
     -- See no_tests_spec: skipped, with the reason as message and output.
     if spec.context.no_tests then
@@ -232,10 +280,14 @@ function adapter.results(spec, result, tree)
 
     local framework = vim.iter(frameworks):find(function(f) return f.name == spec.context.framework end)
     local cases = framework.read_report(spec.context.report)
-    -- An interrupted debug session leaves no report; keep the previous results.
-    -- Not when the executable never started (see exit_hints): that fails as
-    -- a normal run does, with the reason.
-    if not cases and spec.context.debug and not exit_hints[result.code] then return {} end
+    -- A debug session stopped before the end, e.g. at the break-on-failure
+    -- trap, leaves no report: keep each test's last result. Its exit code
+    -- can't tell it apart, as neotest gives 0 for a session that ends before
+    -- the debuggee's exit. Not when the executable never started (see
+    -- exit_hints): that fails as a normal run does, with the reason.
+    if not cases and spec.context.debug and not exit_hints[result.code] then
+        return previous_results(tree, result.output)
+    end
 
     -- Anything the executable printed itself, such as a crash message.
     local printed = vim.trim(lib.files.read(result.output) or "")
@@ -297,23 +349,11 @@ function adapter.results(spec, result, tree)
     if printed ~= "" then vim.list_extend(summary, { "", printed }) end
     lib.files.write(summary_path, table.concat(summary, "\n") .. "\n")
 
-    -- Files and namespaces fail when any of their tests fail.
-    for _, node in tree:iter_nodes() do
-        local position = node:data()
-        if position.type ~= "test" then
-            local status = "skipped"
-            for _, child in node:iter_nodes() do
-                local child_result = results[child:data().id]
-                if child_result and child_result.status == "failed" then
-                    status = "failed"
-                    break
-                elseif child_result and child_result.status == "passed" then
-                    status = "passed"
-                end
-            end
-            results[position.id] = { status = status, output = summary_path }
-        end
+    -- The tests' results, for a later debug session without a report.
+    for id, test_result in pairs(results) do
+        last_results[id] = test_result
     end
+    add_parent_results(tree, results, summary_path)
     return results
 end
 

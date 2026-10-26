@@ -28,8 +28,9 @@
 .PHONY: check fixtures test unit integration suite deps clean clean-fixtures
 
 SANDBOX ?= .sandbox
-# Plugin checkouts the specs load: plenary.nvim, nvim-nio, neotest and
-# neotest-ctest (for its Catch2 query), one directory each.
+# Plugin checkouts the specs load: plenary.nvim, nvim-nio, neotest,
+# neotest-ctest (for its Catch2 query) and nvim-dap (for the debug spec), one
+# directory each.
 DEPS ?= $(SANDBOX)/deps
 # Built C++ projects the specs run, see tests/helpers.lua.
 FIXTURES ?= tests/fixtures
@@ -82,7 +83,7 @@ suite:
 
 # Shallow clones of the dependencies; skipped when DEPS already has them.
 deps:
-	@for repo in nvim-lua/plenary.nvim nvim-neotest/nvim-nio nvim-neotest/neotest orjangj/neotest-ctest; do \
+	@for repo in nvim-lua/plenary.nvim nvim-neotest/nvim-nio nvim-neotest/neotest orjangj/neotest-ctest mfussenegger/nvim-dap; do \
 	    dir="$(DEPS)/$${repo#*/}"; \
 	    test -d "$$dir" || git clone --depth 1 --filter blob:none "https://github.com/$$repo" "$$dir"; \
 	done

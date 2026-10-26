@@ -54,26 +54,12 @@ the repo builds' `_deps/*-src`). DEBUG log for a run:
 `:lua require("neotest.logging"):set_level("debug")`, then
 `~/.local/state/nvim/neotest.log`.
 
-1. **Keep the previous results after an interrupted debug run.** A debug
-   session that ends without a report (stopped at the break-on-failure
-   trap, or terminated) makes `adapter.results` (`init.lua`) return `{}`, to
-   keep the previous results, as the comments there and in `build_spec` say.
-   It doesn't: neotest's runner (`client/runner.lua`, the callback in
-   `run_tree`) then marks every test failed, with no message. Options: the
-   adapter remembers each position's last result and returns those, or
-   marks the tests skipped with "debug session ended before the report".
-   Exit codes in `exit_hints` (a run that never started) already fail with
-   the reason instead. A debug run works headless in a spec: nvim-dap on the
-   runtimepath, `dap.adapters.codelldb = { type = "executable",
-   command = "codelldb" }` as in `config/nvim/lua/plugins/dap.lua`, then
-   `require("neotest").run.run({ file, strategy = "dap" })` with
-   `helpers.start_neotest`'s probe. codelldb passes on no output from a
-   process that exits while loading, only the exit code.
-2. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
+1. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
    Open: own repo, vendoring neotest-ctest's Catch2 query (its only remaining
    use), README, CI for the specs (`make check` in `.devcontainer/`, e.g. with
-   GitHub's `devcontainers/ci`; the image then needs nvim, ripgrep and a C++
-   parser itself, which `bin/nix-devcontainer.sh` brings from nixfiles now),
+   GitHub's `devcontainers/ci`; the image then needs nvim, ripgrep, a C++
+   parser and codelldb (for `tests/integration/debug_spec.lua`) itself, which
+   `bin/nix-devcontainer.sh` brings from nixfiles now),
    and the name ("TestMate" is someone else's VSCode extension). Also test the
    claim Catch2 v2/v3 is supported.
 

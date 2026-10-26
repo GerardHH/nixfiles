@@ -21,7 +21,8 @@ end
 
 check(plugin .. "/lua/neotest-testmate/init.lua", "adapter under test (TESTMATE_PLUGIN)")
 vim.opt.runtimepath:prepend(plugin)
-for _, name in ipairs({ "plenary.nvim", "nvim-nio", "neotest", "neotest-ctest" }) do
+-- nvim-dap for tests/integration/debug_spec.lua.
+for _, name in ipairs({ "plenary.nvim", "nvim-nio", "neotest", "neotest-ctest", "nvim-dap" }) do
     check(deps .. "/" .. name, "dependency (TESTMATE_DEPS, or make deps)")
     vim.opt.runtimepath:append(deps .. "/" .. name)
 end

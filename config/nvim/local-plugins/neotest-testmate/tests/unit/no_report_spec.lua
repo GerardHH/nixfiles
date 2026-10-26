@@ -72,3 +72,37 @@ describe("a run that leaves no report", function()
         end
     end)
 end)
+
+-- A debug session stopped before the end, e.g. at the break-on-failure trap,
+-- with exit code 0, as neotest gives when the session ends before the
+-- debuggee's exit. tests/integration/debug_spec.lua runs one through codelldb.
+describe("a debug session that ends without a report", function()
+    it("keeps each test's last result", function()
+        local file = helpers.fixture("colcon/src/toolbox/greeter/test/greeter_test.cpp")
+        local tree = adapter.discover_positions(file)
+        local spec = adapter.build_spec({ tree = tree })
+        local before = adapter.results(spec, helpers.run_spec(spec), tree)
+
+        local debug_spec = adapter.build_spec({ tree = tree, strategy = "dap" })
+        local after = adapter.results(debug_spec, made_up_result(0, {}), tree)
+        -- The very results of the run before, messages included.
+        for name, result in pairs(helpers.test_results(tree, before)) do
+            assert.equals(result, helpers.test_results(tree, after)[name], name)
+        end
+        assert.same(helpers.statuses(tree, before), helpers.statuses(tree, after))
+    end)
+
+    it("marks a test without a last result skipped, saying why", function()
+        -- Run nowhere else in this file, so the adapter has no results for it.
+        local file = helpers.fixture("cmake-catch2/test/calculator_test.cpp")
+        local tree = adapter.discover_positions(file)
+        local debug_spec = adapter.build_spec({ tree = tree, strategy = "dap" })
+        local results = helpers.test_results(tree, adapter.results(debug_spec, made_up_result(0, {}), tree))
+
+        assert.is_true(next(results) ~= nil, "no results")
+        for name, result in pairs(results) do
+            assert.equals("skipped", result.status, name)
+            assert.equals("not run yet: the debug session ended before its report", result.short)
+        end
+    end)
+end)
