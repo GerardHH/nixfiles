@@ -24,7 +24,7 @@ Delete an item when it's done; git history keeps it.
 
 ## Now
 
-### 2026-10-16 · neotest in a container with colcon/ROS 2
+### 2026-10-26 · neotest in a container with colcon/ROS 2
 
 neotest and nvim-dap for the work setup, through
 `config/nvim/local-plugins/neotest-testmate/`: an adapter that runs test
@@ -54,18 +54,21 @@ the repo builds' `_deps/*-src`). DEBUG log for a run:
 `:lua require("neotest.logging"):set_level("debug")`, then
 `~/.local/state/nvim/neotest.log`.
 
-1. **Say why a run failed outside the tests**, e.g. a workspace not sourced
-   before starting nvim. When an executable leaves no complete report, and
-   for GTest no test in its console output either (`gtest.read_output`
-   returns nil then), `adapter.results` (`init.lua`) marks each test failed
-   with only `Exited with code %d without writing a complete report`; the
-   reason is in the run's output (`printed` there), which that message
-   doesn't show. Fix: add the end of that output to the message, and a hint
-   for known causes, e.g. exit code 127 with
-   `error while loading shared libraries` → source `install/setup.bash`.
-   Check first what an unsourced run shows now, and the dap strategy too.
-   A spec like `crash_spec`'s "gives nothing when no test started" can pin
-   the message.
+1. **Keep the previous results after an interrupted debug run.** A debug
+   session that ends without a report (stopped at the break-on-failure
+   trap, or terminated) makes `adapter.results` (`init.lua`) return `{}`, to
+   keep the previous results, as the comments there and in `build_spec` say.
+   It doesn't: neotest's runner (`client/runner.lua`, the callback in
+   `run_tree`) then marks every test failed, with no message. Options: the
+   adapter remembers each position's last result and returns those, or
+   marks the tests skipped with "debug session ended before the report".
+   Exit codes in `exit_hints` (a run that never started) already fail with
+   the reason instead. A debug run works headless in a spec: nvim-dap on the
+   runtimepath, `dap.adapters.codelldb = { type = "executable",
+   command = "codelldb" }` as in `config/nvim/lua/plugins/dap.lua`, then
+   `require("neotest").run.run({ file, strategy = "dap" })` with
+   `helpers.start_neotest`'s probe. codelldb passes on no output from a
+   process that exits while loading, only the exit code.
 2. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
    Open: own repo, vendoring neotest-ctest's Catch2 query (its only remaining
    use), README, CI for the specs (`make check` in `.devcontainer/`, e.g. with

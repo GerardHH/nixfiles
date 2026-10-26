@@ -4,6 +4,7 @@
 -- which the test macros embed through __FILE__. Supports Catch2 v2 and v3 and
 -- GoogleTest; each framework's module finds the test cases, builds the
 -- command-line filter and reads the XML report.
+local exit = require("neotest-testmate.exit")
 local lib = require("neotest.lib")
 local nio = require("nio")
 
@@ -186,6 +187,39 @@ function adapter.build_spec(args)
     return spec
 end
 
+-- Known causes of a run that never got to its tests, by exit code, for the
+-- message of a run without a report. By exit code, as a debug run has
+-- nothing else: codelldb passes on no output from a process that exits
+-- while it loads.
+local exit_hints = {
+    -- The dynamic loader's code when it can't find a shared library, as in
+    -- a colcon/ROS workspace not sourced in the shell that started nvim.
+    [127] = "a shared library could not be loaded; source the workspace (e.g. `source install/setup.bash`) before starting nvim",
+}
+
+-- How many of the last lines of a run's output go into its message.
+local tail_lines = 5
+
+--- The message for each test of a run that left no complete report: the
+--- exit code, or the signal that killed it, a hint for a known cause, and
+--- the end of what the run printed, which would otherwise only be in the
+--- output panel.
+local function no_report_message(code, printed)
+    -- A signal, e.g. from a crash before the first test, as in a static
+    -- initializer: nothing prints it, as no shell runs the executable.
+    local ended = exit.crash(code) or ("Exited with code %d"):format(code)
+    local lines = { ended .. " without writing a complete report" }
+    if exit_hints[code] then table.insert(lines, "Hint: " .. exit_hints[code]) end
+    -- neotest runs the executable in a pty: lines end in \r, and may be
+    -- coloured.
+    local output = vim.split((printed:gsub("\r", ""):gsub("\27%[[%d;]*m", "")), "\n", { trimempty = true })
+    if #output > 0 then
+        table.insert(lines, "Output ends with:")
+        vim.list_extend(lines, vim.list_slice(output, math.max(1, #output - tail_lines + 1)))
+    end
+    return table.concat(lines, "\n")
+end
+
 function adapter.results(spec, result, tree)
     -- See no_tests_spec: skipped, with the reason as message and output.
     if spec.context.no_tests then
@@ -199,7 +233,9 @@ function adapter.results(spec, result, tree)
     local framework = vim.iter(frameworks):find(function(f) return f.name == spec.context.framework end)
     local cases = framework.read_report(spec.context.report)
     -- An interrupted debug session leaves no report; keep the previous results.
-    if not cases and spec.context.debug then return {} end
+    -- Not when the executable never started (see exit_hints): that fails as
+    -- a normal run does, with the reason.
+    if not cases and spec.context.debug and not exit_hints[result.code] then return {} end
 
     -- Anything the executable printed itself, such as a crash message.
     local printed = vim.trim(lib.files.read(result.output) or "")
@@ -212,6 +248,9 @@ function adapter.results(spec, result, tree)
         if vim.iter(case.failures):any(function(failure) return failure.crash end) then crashed = name end
     end
 
+    -- Without any results, every test fails with the same message.
+    local no_report = not cases and no_report_message(result.code, printed)
+
     local results, summary = {}, {}
     local summary_path = nio.fn.tempname()
     for _, node in tree:iter_nodes() do
@@ -219,9 +258,9 @@ function adapter.results(spec, result, tree)
         if position.type == "test" then
             local case = cases and cases[position.name]
             local status, short, errors = "skipped", "not run", {}
-            if not cases then
+            if no_report then
                 status = "failed"
-                short = ("Exited with code %d without writing a complete report"):format(result.code)
+                short = no_report
             elseif case then
                 status = case.status
                 local lines = {}
@@ -245,11 +284,16 @@ function adapter.results(spec, result, tree)
                 summary,
                 ("%s %s"):format(status == "passed" and "✔" or status == "failed" and "✘" or "-", position.name)
             )
-            if status ~= "passed" then table.insert(summary, (short:gsub("\n", "\n    "):gsub("^", "    "))) end
+            -- The shared message of a run without a report goes in once,
+            -- below the tests.
+            if status ~= "passed" and not no_report then
+                table.insert(summary, (short:gsub("\n", "\n    "):gsub("^", "    ")))
+            end
             results[position.id] = { status = status, short = short, errors = errors, output = summary_path }
         end
     end
 
+    if no_report then vim.list_extend(summary, { "", no_report }) end
     if printed ~= "" then vim.list_extend(summary, { "", printed }) end
     lib.files.write(summary_path, table.concat(summary, "\n") .. "\n")
 

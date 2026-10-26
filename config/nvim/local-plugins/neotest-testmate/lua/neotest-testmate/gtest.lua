@@ -1,5 +1,6 @@
 -- GoogleTest, GoogleMock included: test cases from a tree-sitter query, run
 -- through --gtest_filter, results from --gtest_output=xml.
+local exit = require("neotest-testmate.exit")
 local lib = require("neotest.lib")
 local xml = require("neotest-testmate.xml")
 
@@ -161,25 +162,9 @@ function gtest.read_report(path)
     return cases
 end
 
--- Names of the signals that end a test run most often. neotest reports a
--- process killed by a signal as exit code 128 + the signal's number.
-local signals = {
-    [4] = "SIGILL",
-    [6] = "SIGABRT",
-    [7] = "SIGBUS",
-    [8] = "SIGFPE",
-    [9] = "SIGKILL",
-    [11] = "SIGSEGV",
-    [15] = "SIGTERM",
-}
-
 --- Why a run ended in the middle of a test, from its exit code.
 local function ending(code)
-    local signal = code - 128
-    if signal > 0 and signal < 64 then
-        return ("Crashed: %s (exit code %d)"):format(signals[signal] or ("signal " .. signal), code)
-    end
-    return ("The run ended during this test, with exit code %d"):format(code)
+    return exit.crash(code) or ("The run ended during this test, with exit code %d"):format(code)
 end
 
 -- Status lines that end a test: the result, then the test's full name, ",
