@@ -24,45 +24,6 @@ Delete an item when it's done; git history keeps it.
 
 ## Now
 
-### 2026-10-26 · neotest in a container with colcon/ROS 2
-
-neotest and nvim-dap for the work setup, through
-`config/nvim/local-plugins/neotest-testmate/`: an adapter that runs test
-executables directly, like VSCode's C++ TestMate, instead of through CTest.
-Supports Catch2 v2/v3 and, since 19dd9fd, GTest/GMock (`catch2.lua`,
-`gtest.lua`, `xml.lua`; framework picked by `#include`). Fixtures in its
-`tests/fixtures/`: `cmake-catch2` (Catch2 v3) and `colcon` (a colcon workspace:
-Catch2 v2, GTest in `src/toolbox/greeter`, and there also a Catch2 test that
-mocks with GMock, `greeter_catch2_test.cpp`). Each has a `*crash_test*`
-executable that crashes on purpose, for `tests/unit/crash_spec.lua`. Keep work
-project details out of this repo; facts only.
-
-Specs (plenary busted; `tests/unit` calls the adapter, `tests/integration` runs
-neotest itself, `tests/suite` is a `<leader>tp` run of `colcon`) run where the
-fixtures were built, as the adapter finds an executable by the source paths in
-it: in the plugin's own container (`.devcontainer/`, with the tools every
-fixture builds with). From `~/nixfiles`:
-`bin/nix-devcontainer.sh config/nvim/local-plugins/neotest-testmate -- make check`
-(deps, fixtures, specs); in the container's shell, `make check`, or `make test`
-to rerun the specs only. In Claude's sandbox the fixtures must be on a writable
-path: neotest's `lib.files.exists` uses `os.rename(path, path)`, which fails on
-the read-only repo (EROFS), so discovery silently finds nothing. So Claude
-builds a scratch copy of the plugin in the session scratchpad, `colcon`'s
-packages by plain CMake (no colcon on the host), and runs `make test` there
-(configure offline with `-DFETCHCONTENT_SOURCE_DIR_CATCH2=` and `_GOOGLETEST=`
-the repo builds' `_deps/*-src`). DEBUG log for a run:
-`:lua require("neotest.logging"):set_level("debug")`, then
-`~/.local/state/nvim/neotest.log`.
-
-1. **Publish neotest-testmate as a plugin?** After it has proven itself at work.
-   Open: own repo, vendoring neotest-ctest's Catch2 query (its only remaining
-   use), README, CI for the specs (`make check` in `.devcontainer/`, e.g. with
-   GitHub's `devcontainers/ci`; the image then needs nvim, ripgrep, a C++
-   parser and codelldb (for `tests/integration/debug_spec.lua`) itself, which
-   `bin/nix-devcontainer.sh` brings from nixfiles now),
-   and the name ("TestMate" is someone else's VSCode extension). Also test the
-   claim Catch2 v2/v3 is supported.
-
 ## Next
 
 ### 2026-10-04 · setlocale warnings in the work container
@@ -180,6 +141,63 @@ or move to `tmuxPlugins.catppuccin` (official v2: `@catppuccin_flavor`, status
 line set up by hand).
 
 ## Later
+
+### 2026-10-26 · Publish neotest-testmate as a plugin
+
+After it has proven itself at work. `config/nvim/local-plugins/neotest-testmate/`
+is a neotest adapter that runs C++ test executables directly, like VSCode's C++
+TestMate, instead of through CTest, with nvim-dap for debug runs. Supports
+Catch2 v2/v3 and GTest/GMock (`catch2.lua`, `gtest.lua`, `xml.lua`; framework
+picked by `#include`). Fixtures in its `tests/fixtures/`: `cmake-catch2`
+(Catch2 v3) and `colcon` (a colcon workspace: Catch2 v2, GTest in
+`src/toolbox/greeter`, and there also a Catch2 test that mocks with GMock,
+`greeter_catch2_test.cpp`). Each has a `*crash_test*` executable that crashes
+on purpose, for `tests/unit/crash_spec.lua`. Keep work project details out of
+this repo; facts only.
+
+Specs (plenary busted; `tests/unit` calls the adapter, `tests/integration` runs
+neotest itself, `tests/suite` is a `<leader>tp` run of `colcon`) run where the
+fixtures were built, as the adapter finds an executable by the source paths in
+it: in the plugin's own container (`.devcontainer/`, with the tools every
+fixture builds with, and ptrace for codelldb). From `~/nixfiles`:
+`bin/nix-devcontainer.sh config/nvim/local-plugins/neotest-testmate -- make check`
+(deps, fixtures, specs); in the container's shell, `make check`, or `make test`
+to rerun the specs only. In Claude's sandbox the fixtures must be on a writable
+path: neotest's `lib.files.exists` uses `os.rename(path, path)`, which fails on
+the read-only repo (EROFS), so discovery silently finds nothing. So Claude
+builds a scratch copy of the plugin in the session scratchpad, `colcon`'s
+packages by plain CMake (no colcon on the host), and runs `make test` there
+(configure offline with `-DFETCHCONTENT_SOURCE_DIR_CATCH2=` and `_GOOGLETEST=`
+the repo builds' `_deps/*-src`). DEBUG log for a run:
+`:lua require("neotest.logging"):set_level("debug")`, then
+`~/.local/state/nvim/neotest.log`.
+
+To look into, to make it a proper plugin:
+
+- Own repo, and a name: "TestMate" is someone else's VSCode extension.
+- Drop the neotest-ctest dependency by vendoring its Catch2 query, its only
+  remaining use.
+- Configuration: the options in `init.lua` (`build_dirs`, `executable_glob`,
+  `dap_adapter`, `break_on_failure`, through `adapter.setup`). Are they the
+  right ones, validated (`vim.validate`) and documented? What else a project
+  may need, e.g. other build layouts, environment variables or extra
+  arguments for the run.
+- Other OSes: macOS and Windows. Linux-isms to check: the executable-bit test
+  in `find_executable` (Windows has none; executables end in `.exe`), exit
+  code 128 + signal (`exit.lua`), the loader's 127 and `install/setup.bash`
+  in `exit_hints`, and path separators.
+- CI for the specs: `make check` in `.devcontainer/`, e.g. with GitHub's
+  `devcontainers/ci`. The image then needs nvim, ripgrep, a C++ parser and
+  codelldb (for `tests/integration/debug_spec.lua`) itself, which
+  `bin/nix-devcontainer.sh` brings from nixfiles now. Then a matrix over the
+  OSes above and nvim stable/nightly; outside the container the fixtures need
+  their own toolchain, and colcon only exists on Linux.
+- Test the claim that Catch2 v2/v3 is supported, beyond the two versions the
+  fixtures pin.
+- Plugin basics: README (install, setup, options), vimdoc in `doc/`,
+  `:checkhealth` (ripgrep, the C++ parser, nvim-dap and the dap adapter),
+  LICENSE, the minimum nvim version, tagged releases with a changelog (maybe
+  luarocks), and lint in CI (stylua, lua-language-server type checks).
 
 ### 2026-10-16 · `install.sh`: skip the switch when nothing changed
 
