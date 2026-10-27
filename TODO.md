@@ -24,6 +24,30 @@ Delete an item when it's done; git history keeps it.
 
 ## Now
 
+### 2026-10-27 · How I take in Claude's changes
+
+The current flow doesn't work well. Claude writes complete files to
+`/tmp/claude-1000/<project>/<path in project>` and shows edits as line ranges
+in chat (rules in `config/claude/CLAUDE.md`); `claude-diff` and `claude-take`
+(`config/bash/claude.sh`) review and copy them in. With neotest-testmate I
+took the changes into the repo first and reviewed them there instead. Now that
+I'm more at ease with Claude, look for a better way.
+
+Keep: only results land in the repo, Claude's experiments stay in `/tmp`, and
+Claude can still write only there. To explore:
+
+- Handing changes over: like git conflicts (markers in the repo file, resolved
+  with git-conflict.nvim, see its item in Next), or other ways, e.g. a git
+  branch or worktree under `/tmp` that I fetch from. Likely makes
+  `config/bash/claude.sh` unneeded; the `TODO.md` working copy goes through it
+  too.
+- Explaining changes: Claude's chat output going into detail on each change,
+  inline comments in the code, or both.
+- Drop the per-project write denial. Check which entry that is in
+  `config/claude/settings.json`: `sandbox.filesystem.denyWrite` has both `~`
+  and `~/nixfiles`, and `permissions.deny` has `Edit(~/**)`.
+- Rewrite the rules in `config/claude/CLAUDE.md` to match what we pick.
+
 ## Next
 
 ### 2026-10-04 · setlocale warnings in the work container
