@@ -24,7 +24,7 @@ Delete an item when it's done; git history keeps it.
 
 ## Now
 
-### 2026-10-27 · How I take in Claude's changes
+### 2026-11-03 · How I take in changes from Claude and Copilot
 
 The current flow doesn't work well. Claude writes complete files to
 `/tmp/claude-1000/<project>/<path in project>` and shows edits as line ranges
@@ -33,20 +33,95 @@ in chat (rules in `config/claude/CLAUDE.md`); `claude-diff` and `claude-take`
 took the changes into the repo first and reviewed them there instead. Now that
 I'm more at ease with Claude, look for a better way.
 
-Keep: only results land in the repo, Claude's experiments stay in `/tmp`, and
-Claude can still write only there. To explore:
+Goal: one setup, done once, that serves Claude Code and Copilot CLI alike (see
+"Copilot CLI in the container" in Next). The agent may write in the project,
+as long as I can read every change and accept or reject it per line, per
+hunk, per file or all at once. Its experiments still stay in `/tmp`.
 
-- Handing changes over: like git conflicts (markers in the repo file, resolved
-  with git-conflict.nvim, see its item in Next), or other ways, e.g. a git
-  branch or worktree under `/tmp` that I fetch from. Likely makes
-  `config/bash/claude.sh` unneeded; the `TODO.md` working copy goes through it
-  too.
-- Explaining changes: Claude's chat output going into detail on each change,
-  inline comments in the code, or both.
-- Drop the per-project write denial. Check which entry that is in
-  `config/claude/settings.json`: `sandbox.filesystem.denyWrite` has both `~`
-  and `~/nixfiles`, and `permissions.deny` has `Edit(~/**)`.
-- Rewrite the rules in `config/claude/CLAUDE.md` to match what we pick.
+Inspiration: smnatale/coderabbit.nvim. It runs the CodeRabbit CLI (`cr`) on
+uncommitted changes, committed ones, or both (`review.type`, against
+`review.base` or `review.base_commit`), and shows the findings as diagnostics
+(critical/major/minor as ERROR/WARN/INFO), in a viewer grouped by file, and in
+the quickfix list (`:CodeRabbitQuickfix`, or `quickfix.auto`); fixes come as
+code actions, past reviews stay on disk (`:CodeRabbitHistory`). What appeals:
+the quickfix list as the queue to work through, without leaving nvim.
+
+Review through git, so it works the same for any agent: the agent edits the
+working tree, I review the unstaged diff in nvim, and the index holds what I
+accepted.
+
+- Accept: `:Gitsigns stage_hunk` (a hunk, or the selected lines in visual
+  mode), `git add <file>`, `git add --all`. Reject: `:Gitsigns reset_hunk`
+  (same ranges), `git restore <file>`.
+- Read: `:Gitsigns setqflist all` puts every hunk in the quickfix list to step
+  through (see the quickfix item in Next). Side by side, working tree against
+  index: nvim's own `nvim.difftool` (loaded in
+  `config/nvim/lua/plugins/difftool.lua`) or diffview.nvim, where
+  `:diffget`/`:diffput` also take single lines. Pick it together with the
+  forge reviews item in Next, so one diff view serves both.
+- Keep the agent's changes apart from mine: start from a clean tree (commit or
+  stash first), or give the agent its own worktree. With writes in the repo
+  allowed, the worktree's metadata in `.git` is no longer a problem.
+- Keep `.git` read-only for the agent (sandbox `denyWrite`), so it can't stage
+  or commit: staged then always means I accepted it. Check that both agents
+  can still run read-only git (`status`, `diff`, `log`) that way.
+- Explaining changes: the agent writes one line per change
+  (`file:line: why`) to a file I load with `:cfile`, so the reason sits next
+  to the hunk; or chat output per change, inline comments, or a mix.
+- Or as git conflicts: the agent writes conflict markers, I pick a side with
+  git-conflict.nvim (see its item in Next).
+- The other way round, the agent reviewing my changes: coderabbit.nvim with
+  Claude or Copilot in place of `cr`. `claude -p` (or `/code-review`), or
+  `copilot -p`, on uncommitted changes or the branch against `main`, printing
+  `file:line: message` lines that `:cexpr`/`:cfile` load into quickfix, or
+  `vim.diagnostic.set` under its own namespace. Check whether coderabbit.nvim
+  can take another CLI (`cli.binary`, `cli.extra_args`; it parses `cr`'s
+  output, so likely not), else a small plugin of our own.
+
+Instead of or on top of that, approval per edit as it happens, from nvim:
+
+- claudecode.nvim (coder) speaks Claude Code's IDE protocol, the one VSCode
+  uses: each edit opens as a diff to accept or reject. Claude only.
+- ACP (Agent Client Protocol): Copilot CLI has an ACP server (GitHub docs:
+  `copilot-cli-reference/acp-server`), Claude Code works through an adapter
+  (`claude-code-acp`; check), and nvim clients such as codecompanion.nvim
+  drive either. One front-end for both; check which clients show edits as
+  diffs to accept.
+
+One harness for both, e.g. Pi (earendil-works/pi, was badlogic/pi-mono): a
+minimal agent CLI you extend yourself (extensions, skills, prompt templates;
+an RPC mode over JSONL for editors, and a TypeScript SDK). It takes a Copilot
+token (`COPILOT_GITHUB_TOKEN`) and Anthropic credentials (`ANTHROPIC_API_KEY`
+or `ANTHROPIC_OAUTH_TOKEN`); check whether my Claude subscription works there
+and is allowed under its terms. It has no permission system or sandbox: it
+runs with my rights, and its docs point to a container (we have
+`bin/nix-devcontainer.sh`). We'd lose Claude Code's sandbox, auto mode,
+plugins (LSP) and skills. Which instruction files it reads: check.
+
+Or keep both harnesses and share their config from nixfiles:
+
+- Instructions: one `AGENTS.md` per project, which Copilot CLI reads; Claude
+  Code reads `CLAUDE.md`, which can be just `@AGENTS.md`. Global:
+  `config/claude/CLAUDE.md` and Copilot's user-level file (check where; it
+  keeps its config in `~/.copilot`, moved by `COPILOT_HOME`).
+- Skills: both support them; check whether one folder of `SKILL.md`s works
+  for both, linked into `~/.claude/skills` and Copilot's.
+- MCP servers: Claude's config and Copilot's `~/.copilot/mcp-config.json`,
+  generated from one list in nix.
+- Hooks and permissions differ (Copilot: `--allow-tool`, `--deny-tool`,
+  `/sandbox enable`); keep them per harness, short.
+- Language servers: see the Inbox item.
+
+Then:
+
+- Drop the write denial for projects in `config/claude/settings.json`:
+  `Edit(~/**)` in `permissions.deny` and `~/nixfiles` in
+  `sandbox.filesystem.denyWrite` (`~` stays); deny `.git` instead. The same
+  for Copilot.
+- With that, `config/bash/claude.sh`, the proposal files in `/tmp/claude-1000`
+  and the `TODO.md` working copy rule in `CLAUDE.md` go.
+- Rewrite the rules in `config/claude/CLAUDE.md` (or the shared `AGENTS.md`)
+  to match what we pick.
 
 ## Next
 
@@ -163,6 +238,39 @@ plugin dir). It has no dreamsofcode-io/catppuccin-tmux: package the fork with
 `mkTmuxPlugin` (`rtpFilePath = "catppuccin.tmux"`; it only reads its own dir),
 or move to `tmuxPlugins.catppuccin` (official v2: `@catppuccin_flavor`, status
 line set up by hand).
+
+### 2026-11-03 · GitLab/GitHub reviews in nvim
+
+Review merge and pull requests in nvim: read the diff, comment on lines, reply
+to threads, approve. Ties in with "How I take in changes from Claude and
+Copilot" in Now: ideally the same diff view and quickfix flow for an agent's
+changes and a colleague's request. Candidates: octo.nvim (GitHub only; PRs,
+review threads, through the `gh` CLI) and harrisoncramer/gitlab.nvim (GitLab
+only; MR comments and approvals, on diffview.nvim, with a small Go server it
+builds; check). Neither covers both; just reading a diff works for either with the
+branch fetched and a local diff view. Check first which forge work uses, and
+whether it's a self-hosted GitLab. Tokens: same question as "Copilot CLI in
+the container" (sops through `nixfiles-secrets`), plus `gh`/`glab auth`.
+
+### 2026-11-03 · Quickfix list instead of fzf for lists of results
+
+Use the quickfix list where the result is a list to work through, and keep
+fzf-lua for picking one thing (files, buffers, help, keymaps, commands). Now in
+`config/nvim/lua/plugins/fzf.lua`: `<leader>lf` (`FzfLua lsp_finder`,
+references and the like), `<leader>ld`/`<leader>lD` (diagnostics),
+`<leader>fs`/`<leader>fc` (grep). Already on quickfix: `<leader>Cd`
+(diagnostics, in `nvim-bqf.lua`), `<leader>vt` (todo-comments), and nvim's own
+defaults `grr` (references), `gri` (implementations) and `gO` (document
+symbols, location list). Options per list: plain `vim.lsp.buf.references()`
+and friends, `:grep` with ripgrep as `grepprg`, or keep fzf-lua and send its
+results on (it has an action to send the selection to quickfix; check the
+key). `:colder`/`:cnewer` bring back earlier lists. Keys to the layers in
+`README.md` (`<leader>C` is Quickfix).
+
+Together with quicker.nvim (from "nvim plugins to evaluate" in Later): an
+editable quickfix buffer that writes edits back to the files, context lines
+around entries, a tidier layout. nvim-bqf is in use already (preview window,
+fzf filter); check whether the two work together, or which to keep.
 
 ## Later
 
@@ -329,13 +437,12 @@ let tmux answer OSC 52 reads.
 `tmux source-file`. Goal: path completion after any command, and bash completion
 for tmux.
 
-### 2026-10-04 · nvim plugins to evaluate
+### 2026-11-03 · nvim plugins to evaluate
 
 - nvim-hlslens: match index next to search results.
 - blink-ripgrep.nvim: blink.cmp source with words from the whole project.
 - treesj: split/join on treesitter nodes; overlaps mini.splitjoin.
 - tiny-inline-diagnostic.nvim: nicer inline diagnostics.
-- quicker.nvim: editable, nicer quickfix list.
 - nvim-chainsaw: insert and remove log statements.
 
 ### 2026-10-04 · Code-aware spell checker in nvim
