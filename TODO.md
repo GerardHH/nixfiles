@@ -445,6 +445,24 @@ for tmux.
 - tiny-inline-diagnostic.nvim: nicer inline diagnostics.
 - nvim-chainsaw: insert and remove log statements.
 
+### 2026-11-03 · nvim's own catppuccin instead of the plugin
+
+nvim 0.12 ships `colors/catppuccin.vim` in `$VIMRUNTIME` (Latte for
+`background=light`, Mocha for dark), so `:colorscheme catppuccin` works
+without catppuccin/nvim (`config/nvim/lua/plugins/catppuccin.lua`). Do we
+still need the plugin? The bundled one is a port of Vim's (Colortemplate,
+vim/colorschemes) and covers the core groups only: syntax, UI, diff, `Pmenu*`,
+quickfix, markdown. It has no treesitter `@` groups, no `Diagnostic*` or LSP
+groups, none of the integrations we turn on (gitsigns, dap, noice, which-key,
+flash, navic, indent-blankline, …), no other flavours and no options (our
+italic virtual text, underlined diagnostics); those fall back to nvim's default
+links. Also on the plugin: `lualine.lua` reads `catppuccin.palettes.mocha`,
+and `dap.lua` copies colours from its dap integration. With both installed the
+plugin wins (`g:colors_name` is `catppuccin-mocha`). To check: disable the
+plugin and compare C++, Lua and Nix files with diagnostics, a diff and the dap
+UI; keep the plugin if the gaps show. One plugin fewer to package in "nvim
+plugins through nix" in Next.
+
 ### 2026-10-04 · Code-aware spell checker in nvim
 
 Baseline without installs: `:set spell`, which with treesitter only checks
