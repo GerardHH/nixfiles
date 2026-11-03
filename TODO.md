@@ -93,10 +93,36 @@ minimal agent CLI you extend yourself (extensions, skills, prompt templates;
 an RPC mode over JSONL for editors, and a TypeScript SDK). It takes a Copilot
 token (`COPILOT_GITHUB_TOKEN`) and Anthropic credentials (`ANTHROPIC_API_KEY`
 or `ANTHROPIC_OAUTH_TOKEN`); check whether my Claude subscription works there
-and is allowed under its terms. It has no permission system or sandbox: it
-runs with my rights, and its docs point to a container (we have
-`bin/nix-devcontainer.sh`). We'd lose Claude Code's sandbox, auto mode,
-plugins (LSP) and skills. Which instruction files it reads: check.
+and is allowed under its terms. Out of the box it has no permission system or
+sandbox and runs with my rights. Community extensions add both
+(`pi install npm:<name>`):
+
+- Permissions: `@gotgenes/pi-permission-system` (allow/ask/deny per tool and
+  path, e.g. deny `~/.ssh/*` and paths outside the project),
+  `pi-permission-modes` (allow/ask/deny, bash commands parsed with
+  tree-sitter), `pi-simple-permissions` (default/auto/yolo modes).
+- Sandbox for bash: `@erichll/pi-sandbox`, `@nqbao/pi-sandbox`, `pi-sandbox`
+  (chrisarderne), `@sysid/pi-sandbox`. The last two build on pi-mono's own
+  example sandbox extension, on forks of `@anthropic-ai/sandbox-runtime`, the
+  library behind Claude Code's sandbox (check). On Linux: bubblewrap, socat,
+  ripgrep. Settings: writable paths, denied paths within them, network.
+- Stand-in for auto mode: `@erichll/pi-auto-review`, a model that decides the
+  `ask` cases and falls back to me on error or timeout.
+- A write-up that combines the three: "A Pi setup with permission, sandbox,
+  and auto-review" (ptgamr.substack.com).
+
+Limits: extensions run inside Pi's process with my rights, so they're policy,
+not a boundary. The sandbox covers bash only; Pi's read/write/edit tools run
+in Node and obey only the permission rules, and other extensions' tools stay
+unsandboxed. Each is third-party code to review before installing. For a
+boundary, Pi's docs (pi.dev, "Run Pi in an isolated environment") list all of
+Pi in a container (plain Docker; we have `bin/nix-devcontainer.sh`), Docker
+Sandboxes (keeps the provider credential on the host), NVIDIA OpenShell, or
+the Gondolin extension (a QEMU micro-VM for the built-in tools only; passes
+the host environment in, so no credential boundary). Likely shape: Pi in the
+container, plus a permission extension. We'd still lose Claude Code's plugins
+(LSP) and skills, and auto mode becomes a third-party stand-in. Which
+instruction files it reads: check.
 
 Or keep both harnesses and share their config from nixfiles:
 
