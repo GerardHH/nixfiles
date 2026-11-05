@@ -24,7 +24,7 @@ Delete an item when it's done; git history keeps it.
 
 ## Now
 
-### 2026-11-03 · How I take in changes from Claude and Copilot
+### 2026-11-05 · How I take in changes from Claude and Copilot
 
 The current flow doesn't work well. Claude writes complete files to
 `/tmp/claude-1000/<project>/<path in project>` and shows edits as line ranges
@@ -138,6 +138,124 @@ Or keep both harnesses and share their config from nixfiles:
   `/sandbox enable`); keep them per harness, short.
 - Language servers: see the Inbox item.
 
+Run the agents in containers, one shape for both, built on
+`bin/nix-devcontainer.sh`: the agent gets the project's toolchain (build,
+tests, clangd) and nothing of the host it doesn't need. Today Claude runs on
+the host, each command in bwrap (`check_bwrap_sandbox` in
+`home/profiles/personal/preflight.sh`); the `container` profile has no agents
+(no `modules/claude.nix`).
+
+What the devcontainer opens up to an agent now, to close first:
+
+- `~/nixfiles` is bind-mounted read-write: an agent could edit `config/bashrc`
+  or a `bin/` script and so run code on the host at my next shell. Mount it
+  read-only for the agent (check that `install.sh` needs no writes there).
+- `/nix` and `/etc/nix` are read-write, with the nix daemon socket: the agent
+  can build and add to the host's store. No escape by itself; check whether
+  the agent needs more than read access.
+- The network is open. Needs an allowlist, see below.
+
+What a work devcontainer.json adds (as in
+`dev-container-tests/.devcontainer/devcontainer.json`, its `runArgs`):
+
+- `--network=host`: no firewall of its own is possible, and the host's
+  localhost services are in reach. Claude's sandbox proxy (`strictAllowlist`)
+  is then the only egress control.
+- Credentials: `~/.ssh`, `~/.netrc` (also as `/root/.netrc`), `~/.jfrog`
+  (read-write) and `/etc/apt/auth.conf.d/artifactory.conf`. The `~` ones are
+  in `permissions.deny` of `config/claude/settings.json` already, and the
+  container's home matches; `/root/.netrc` and the apt one are not.
+- X11: `/tmp/.X11-unix` and `DISPLAY`. Any X client can read keys from and
+  type into other windows on the host's X server; deny the socket in the
+  sandbox (`denyRead`).
+- `seccomp=unconfined` helps bwrap make its namespaces there.
+
+Where the agent runs:
+
+- In the devcontainer itself, beside my shell. The container keeps the agent
+  off the host, but not away from what my shell has in there (the read-write
+  nixfiles, `.git`, the history volume, any tokens), so Claude's bwrap stays
+  the boundary between us. Deny `.git` through bwrap's `denyWrite`, not a
+  read-only mount, and my shell can still stage. Claude only: Copilot has no
+  per-command sandbox like it (check its `/sandbox enable`). bwrap inside
+  rootless podman needs nested user namespaces (check with
+  `bwrap --unshare-user --ro-bind / / true`; `failIfUnavailable` makes it fail
+  loudly; `sandbox.enableWeakerNestedSandbox` is the weaker fallback, check).
+  The host's AppArmor fix in `lib/host.sh` (`bwrap_fix_ok`) covers bwrap by
+  path; check whether it reaches into the container, where the store path is
+  the same.
+- Container in a container: podman inside the devcontainer starts the agent's.
+  Rootless podman-in-podman needs `/dev/fuse`, subuid ranges in the image and
+  a loosened seccomp/SELinux profile on the outer container (check Red Hat's
+  "How to use Podman inside of a container"). That weakens the box my own
+  shell runs in, and the inner container needs the project toolchain again:
+  the same image twice.
+- Sibling container (likely): `nix-devcontainer.sh` starts, on request (flag
+  to name), a second container from the same image beside mine. Same
+  workspace, with `.git` bound read-only over it (or the agent's own
+  worktree); `/home/ubuntu/nixfiles` read-only; its own volumes for
+  `~/.claude` and `~/.copilot`, like the bash history volume; only the
+  credentials of its context (see below); the egress allowlist. Mine keeps a
+  writable `.git` to stage. No nesting, no extra privileges. Claude's bwrap
+  is optional there, a second layer: it keeps the agent's commands from
+  rewriting its own settings and hooks (moot if it skips prompts anyway), and
+  filters the network per command. Start it with `podman run` on the image
+  `devcontainer up` built, with our own arguments: a second `devcontainer up`
+  would repeat the project's `runArgs` (host network, credentials, X11; see
+  above).
+- Projects without `.devcontainer/` (nixfiles, personal ones): a default
+  image (plain Ubuntu plus the `container` profile), so one script serves all.
+- Install: `modules/claude.nix` and Copilot CLI (nixpkgs attr: check) in the
+  `container` profile, or an `agents` module that profiles import. Images
+  need nothing: neither ours nor work's has bwrap, but nixpkgs' `claude-code`
+  brings bubblewrap and socat itself (its wrapper puts socat on `PATH`, and it
+  runs bwrap from the store), all through the `/nix` mount.
+- Egress: Anthropic's reference devcontainer (anthropics/claude-code,
+  `.devcontainer/init-firewall.sh`: iptables and ipset, deny by default, needs
+  `NET_ADMIN`) is the model. Rootless alternative: no network for the
+  agent's container except a proxy that passes only listed hosts (check what
+  podman offers). Hosts: the model API, GitHub, the nix cache, and for work
+  Artifactory.
+- Inside, the agent may skip its own prompts (`--dangerously-skip-permissions`,
+  Copilot `--allow-all-tools`), as the container is the boundary. Decide; auto
+  mode may be the middle ground.
+- Reaching nvim from the agent's container: claudecode.nvim talks over a
+  WebSocket on localhost, ACP over stdio. Check whether that crosses containers
+  (shared network namespace, `--network container:<mine>`), or whether review
+  through the shared working tree is enough.
+
+Which model may see what. Company code and secrets go only to a model under
+the company's contract: Copilot through the work org's Business/Enterprise
+seat, Claude only if work has a contract (Team/Enterprise, an API org,
+Bedrock/Vertex; ask at work what's approved). My own Claude subscription and
+personal Copilot only for personal projects. Fix it per container, not per
+prompt, so picking wrong can't happen:
+
+- Context from the workspace: under `~/git/lely` (the path `gitconfig`'s
+  `includeIf` already uses), or a marker in the project → work; else
+  personal. An override only towards work.
+- Credentials: a container gets only its context's tokens, never both, from
+  sops through `nixfiles-secrets` (see "Copilot CLI in the container" in
+  Next). Work: a token of the work GitHub account in `COPILOT_GITHUB_TOKEN`;
+  for Claude the company's key or Bedrock variables (`CLAUDE_CODE_USE_BEDROCK`).
+  Personal: `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, and my own
+  GitHub token.
+- Egress: the work allowlist names only the work endpoints, so a wrong setting
+  fails to connect instead of sending code out.
+- Models: the work org's Copilot policy decides which models the work account
+  gets (Claude models through Copilot too). Claude Code: managed settings
+  (`/etc/claude-code/managed-settings.json`, in the image or bind-mounted) pin
+  `model` and may limit the picker (`availableModels`; check). Copilot CLI:
+  `--model`, or `model` in its config.
+- Show it: `config/claude/statusline.sh` and the bash prompt show WORK or
+  PERSONAL inside the container.
+- Not: proxies that put Copilot's models behind Claude Code (copilot-api and
+  the like); likely against GitHub's terms.
+- The host: Claude runs on the work laptop now too (`lely` imports
+  `personal`), kept off work code by `Read(~/git/lely/**)` in
+  `permissions.deny` of `config/claude/settings.json`. Keep that, or move all
+  agent use into containers and drop Claude from the host.
+
 Then:
 
 - Drop the write denial for projects in `config/claude/settings.json`:
@@ -159,13 +277,15 @@ helps nix programs. Find where `LANG` comes from (image `ENV`, devcontainer.json
 `containerEnv`/`remoteEnv`), then e.g. `--remote-env LANG=C.UTF-8` in
 `bin/nix-devcontainer.sh`.
 
-### 2026-10-03 · Copilot CLI in the container
+### 2026-11-05 · Copilot CLI in the container
 
 Needed for work; Claude Code covers it for now. Open question: deliver the token
 through `nixfiles-secrets` (sops) so a container rebuild costs nothing. Likely
 shape: a token on the host from sops, passed in by `bin/nix-devcontainer.sh` as
 an environment variable or bind-mounted file, like the per-workspace bash
-history mount there.
+history mount there. Which container gets which token, and the agent's own
+container: see the containers part of "How I take in changes from Claude and
+Copilot" in Now.
 
 ### 2026-10-05 · git-conflict.nvim breaks on nvim 0.12
 
