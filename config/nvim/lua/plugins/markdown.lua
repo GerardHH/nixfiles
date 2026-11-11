@@ -16,4 +16,18 @@ return {
             },
         },
     },
+    {
+        "brianhuster/live-preview.nvim",
+        dependencies = { "ibhagwan/fzf-lua" }, -- picker for `:LivePreview pick`
+        cmd = "LivePreview",
+        keys = {
+            { "<leader>vp", "<CMD>LivePreview start<CR>", desc = "View preview in browser" },
+            { "<leader>vP", "<CMD>LivePreview close<CR>", desc = "View preview close" },
+        },
+        config = function()
+            require("livepreview.config").set({
+                picker = "fzf-lua",
+            })
+        end,
+    },
 }

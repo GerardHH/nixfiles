@@ -583,8 +583,33 @@ let tmux answer OSC 52 reads.
 `tmux source-file`. Goal: path completion after any command, and bash completion
 for tmux.
 
-### 2026-11-03 · nvim plugins to evaluate
+### 2026-11-11 · Mermaid diagrams inline in nvim
 
+For now live-preview.nvim (`<leader>vp`, in
+`config/nvim/lua/plugins/markdown.lua`) shows Markdown with its Mermaid
+diagrams in the browser, on the host only. In a container it can't open a
+browser, and its server listens on the container's `127.0.0.1` (reachable from
+the host only with `--network=host`, as work containers have; else
+`address = "0.0.0.0"` and a published port). Find the nicest way to see them
+in nvim itself, which also covers the container:
+
+- Images in the buffer: snacks.nvim's `image` module renders ```` ```mermaid ````
+  blocks where they sit, through `mmdc` (mermaid-cli); diagram.nvim (3rd, on
+  image.nvim) does Mermaid, PlantUML, D2 and gnuplot. Both need the Kitty
+  graphics protocol, which Alacritty lacks: kitty, Ghostty or WezTerm instead,
+  and `allow-passthrough on` in `config/tmux/tmux.conf`. image.nvim's
+  ueberzugpp backend works in any terminal, but on Wayland only for some
+  compositors, and it misplaces images in tmux.
+- Text in the buffer: the `mermaid-ascii` CLI draws flowcharts and sequence
+  diagrams as ASCII; no plugin known, a keymap could pipe the block under the
+  cursor into a float.
+- Check whether Alacritty has gained a graphics protocol by then.
+
+### 2026-11-11 · nvim plugins to evaluate
+
+- snacks.nvim (folke): a bundle of small modules (picker, image, notifier,
+  dashboard, …), each enabled on its own. Its `image` module is a candidate for
+  "Mermaid diagrams inline in nvim" above; its picker overlaps fzf-lua.
 - nvim-hlslens: match index next to search results.
 - blink-ripgrep.nvim: blink.cmp source with words from the whole project.
 - treesj: split/join on treesitter nodes; overlaps mini.splitjoin.
