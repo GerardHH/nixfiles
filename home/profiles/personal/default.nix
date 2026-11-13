@@ -8,6 +8,7 @@
         ../../modules/devcontainer.nix
         ../../modules/gnome-keys.nix
         ../../modules/graphical-session.nix
+        ../../modules/zsa.nix
         ./secrets.nix
         ./ssh.nix
     ];

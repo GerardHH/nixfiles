@@ -5,8 +5,8 @@
 #
 # Both targets are plain Ubuntu and Home Manager runs unprivileged, so nothing
 # outside $HOME can be expressed as a module. The fixes themselves live in
-# host/ as data plus an apply step in bin/host-setup.sh; this file only
-# supplies the checks that notice when one is missing, and like preflight.sh
+# host/ as data; this file supplies the checks that notice when one is
+# missing and the apply steps bin/host-setup.sh runs, and like preflight.sh
 # it knows no profile by name.
 
 #shellcheck source=./log.sh
@@ -200,6 +200,135 @@ check_bwrap_sandbox() {
     bwrap_fix_ok || true
 }
 
+# The udev rules that let Keymapp and Oryx reach a ZSA keyboard without root,
+# where they are installed, and the group their hidraw rule grants write to.
+NIXFILES_ZSA_RULES_SRC="${NIXFILES_HOST_DIR}/udev/50-zsa.rules"
+NIXFILES_ZSA_RULES_DST="/etc/udev/rules.d/50-zsa.rules"
+NIXFILES_ZSA_GROUP="plugdev"
+
+# Reports whether the installed ZSA rules match the ones in this repo.
+# Compares contents rather than testing for the file, so an edit to the repo's
+# copy shows up as missing until it is applied again.
+# Globals:
+#   NIXFILES_ZSA_RULES_SRC, NIXFILES_ZSA_RULES_DST - read
+# Returns:
+#   0 when the installed file matches, 1 when it differs or is missing.
+zsa_udev_rules_installed() {
+    cmp --silent -- "${NIXFILES_ZSA_RULES_SRC}" "${NIXFILES_ZSA_RULES_DST}"
+}
+
+# Reports whether the user is a member of the group the rules grant write to.
+# Asks the group database by user name rather than this process's groups: a
+# new membership reaches processes only after the next login, and sandboxes
+# hide supplementary groups altogether, but the fix is in place either way.
+# Globals:
+#   NIXFILES_ZSA_GROUP - read
+# Returns:
+#   0 when the user is a member, 1 otherwise.
+zsa_user_in_group() {
+    [[ " $(id --name --groups -- "${USER}") " == *" ${NIXFILES_ZSA_GROUP} "* ]]
+}
+
+# Explains why Keymapp cannot reach the keyboard and how to fix it.
+# Arguments:
+#   $1 - one line on what was observed
+# Globals:
+#   NIXFILES_BIN_DIR, NIXFILES_HOST_DIR, NIXFILES_ZSA_RULES_DST - read
+# Outputs:
+#   Writes the explanation to stderr.
+warn_missing_zsa_udev_rules() {
+    warn "${1}"
+    cat >&2 <<EOF
+
+  Keymapp flashes ZSA keyboards over raw USB, and it and Oryx in the browser
+  talk to the keyboard's hidraw node. Both device nodes belong to root, so
+  without ${NIXFILES_ZSA_RULES_DST} Keymapp does not find
+  the keyboard and cannot flash it.
+
+  Home Manager runs unprivileged and cannot write /etc/udev. Apply the rules
+  by hand, once per machine:
+
+    ${NIXFILES_BIN_DIR}/host-setup.sh apply
+
+  Background: ${NIXFILES_HOST_DIR}/README.md
+EOF
+}
+
+# Reports whether the ZSA udev fix is in place, explaining when it is not.
+# Globals:
+#   NIXFILES_ZSA_RULES_SRC, NIXFILES_ZSA_RULES_DST, NIXFILES_ZSA_GROUP - read
+# Outputs:
+#   Writes an explanation to stderr when something is missing.
+# Returns:
+#   0 when nothing is wrong, 1 when the fix is missing.
+zsa_udev_fix_ok() {
+    if ! zsa_udev_rules_installed; then
+        warn_missing_zsa_udev_rules "${NIXFILES_ZSA_RULES_DST} is missing or differs from ${NIXFILES_ZSA_RULES_SRC}."
+        return 1
+    fi
+
+    if ! zsa_user_in_group; then
+        warn_missing_zsa_udev_rules "${USER} is not in group ${NIXFILES_ZSA_GROUP}, which the hidraw rule grants write access to."
+        return 1
+    fi
+
+    return 0
+}
+
+# Warns when the ZSA udev fix is missing, without failing the activation.
+# Same split as check_bwrap_sandbox: Keymapp degrading is no reason to abort
+# a switch.
+# Outputs:
+#   Writes an explanation to stderr when something is missing.
+# Returns:
+#   Always 0.
+check_zsa_udev_rules() {
+    zsa_udev_fix_ok || true
+}
+
+# Installs the ZSA udev rules, applies them to devices already plugged in,
+# and adds the user to the group they grant write access to.
+# Globals:
+#   NIXFILES_ZSA_RULES_SRC, NIXFILES_ZSA_RULES_DST, NIXFILES_ZSA_GROUP - read
+# Outputs:
+#   Writes progress to stdout, and a warning to stderr when a new group
+#   membership needs a fresh login.
+# Returns:
+#   0 when the fix is in place afterwards; otherwise calls die and does not
+#   return.
+apply_zsa_udev_rules() {
+    [[ -r ${NIXFILES_ZSA_RULES_SRC} ]] ||
+        die "No rules to install at ${NIXFILES_ZSA_RULES_SRC}."
+
+    if zsa_udev_rules_installed; then
+        log "ZSA udev rules already installed."
+    else
+        log "Installing ${NIXFILES_ZSA_RULES_DST}"
+        sudo install --mode=644 --owner=root --group=root \
+            -- "${NIXFILES_ZSA_RULES_SRC}" "${NIXFILES_ZSA_RULES_DST}"
+
+        # udevd keeps its parsed rules in memory; reload so it sees the file.
+        log "Reloading udev rules"
+        sudo udevadm control --reload
+
+        # Rules run only on device events. Replay a "change" event for the
+        # USB and hidraw devices already plugged in, so a connected keyboard
+        # gets its permissions without a replug.
+        sudo udevadm trigger --subsystem-match=usb --subsystem-match=hidraw
+    fi
+
+    if zsa_user_in_group; then
+        log "${USER} is already in group ${NIXFILES_ZSA_GROUP}."
+    else
+        log "Adding ${USER} to group ${NIXFILES_ZSA_GROUP}"
+        sudo usermod --append --groups "${NIXFILES_ZSA_GROUP}" "${USER}"
+        warn "Log out and in again: the new group reaches only processes started after that."
+    fi
+
+    zsa_udev_rules_installed ||
+        die "${NIXFILES_ZSA_RULES_DST} still differs from ${NIXFILES_ZSA_RULES_SRC} after installing it."
+}
+
 # Reports the state of every host fix.
 # Outputs:
 #   Writes explanations to stderr for anything missing.
@@ -209,10 +338,23 @@ check_host_fixes() {
     local failed=0
 
     bwrap_fix_ok || failed=1
+    zsa_udev_fix_ok || failed=1
 
     if ((failed > 0)); then
         return 1
     fi
 
     log "All host fixes are in place."
+}
+
+# Applies every host fix. Each one checks first and skips itself when already
+# in place, so this is safe to run again.
+# Outputs:
+#   Writes progress to stdout.
+# Returns:
+#   0 when every fix is in place afterwards; otherwise calls die and does not
+#   return.
+apply_host_fixes() {
+    apply_bwrap_profile
+    apply_zsa_udev_rules
 }

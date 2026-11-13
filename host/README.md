@@ -6,7 +6,7 @@ lives here as data plus an apply step in `bin/host-setup.sh`.
 
 ```text
 host-setup.sh          # report what is missing
-host-setup.sh apply    # install it, prompts for sudo
+host-setup.sh apply    # install all of it, prompts for sudo
 ```
 
 Profiles that need one of these fixes call the matching `check_*` from
@@ -52,3 +52,26 @@ shell commands. The `permissions.deny` list is per-tool and is not a substitute.
 nix-store path the profile silently stops applying, and the store path changes
 on every update — `check_bwrap_sandbox` warns when the bwrap first on PATH is
 not the anchored one.
+
+### udev / ZSA — Keymapp and Oryx reaching the keyboard
+
+**Symptom:** Keymapp (from `home/modules/zsa.nix`) does not find the Voyager,
+or finds it and fails to flash. Oryx in the browser cannot connect for live
+training.
+
+**Cause:** the keyboard's USB and hidraw device nodes belong to root, and
+Ubuntu ships no rules for ZSA's vendor id (`3297`).
+
+**Fix:** `host/udev/50-zsa.rules`, the Voyager lines from ZSA's Linux install
+page, installed to `/etc/udev/rules.d/`. The apply step reloads udev and
+replays events for devices already plugged in, so no replug is needed. The
+hidraw rule grants write access through group `plugdev`; the apply step adds
+the user to it if needed, which takes effect at the next login.
+
+**Trade-off:** the USB rules set mode `0666`, as ZSA ships them: any local user
+may write to the keyboard, flashing included. Kept rather than narrowed to
+`plugdev`, so flashing matches the setup ZSA tests.
+
+**Gotcha:** the check compares the installed file with the repo's, so an edit to
+`host/udev/50-zsa.rules` reports as missing until `host-setup.sh apply` runs
+again.

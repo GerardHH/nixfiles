@@ -28,7 +28,7 @@ check)
     check_host_fixes
     ;;
 apply)
-    apply_bwrap_profile
+    apply_host_fixes
     ;;
 *)
     die "Unknown action '${ACTION}'. Use 'check' or 'apply'."

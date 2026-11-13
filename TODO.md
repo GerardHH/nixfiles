@@ -26,30 +26,19 @@ Delete an item when it's done; git history keeps it.
 
 ### 2026-11-13 · Keymapp for the ZSA Voyager
 
-Set up Keymapp, ZSA's app for flashing the Voyager and viewing its layout. It
-needs udev rules before it can reach the keyboard over USB. Home Manager can't
-write `/etc`, so do it like the bwrap AppArmor fix:
+Set up Keymapp, ZSA's app for flashing the Voyager and viewing its layout.
+Written: `home/modules/zsa.nix` (Keymapp wrapped in nixGL, the touchpad's
+dconf keys), imported by `personal` (lely inherits it); `keymapp` allowed as
+unfree in `flake.nix`; the udev rules as a host fix (`check_zsa_udev_rules` in
+`lib/host.sh`, run by `host-setup.sh` and personal's `preflight.sh`;
+`host-setup.sh apply` now applies every fix). Rules and `plugdev` already in
+place on the personal laptop.
 
-- The rules are in `host/udev/50-zsa.rules` (Voyager lines from ZSA's page),
-  installed by hand for now. The hidraw rule gives write access through
-  `GROUP="plugdev"`: check that I'm in it.
-- An apply step in `bin/host-setup.sh` (`apply_zsa_udev_rules` or similar)
-  that installs the file, then runs `udevadm control --reload-rules` and
-  `udevadm trigger`.
-- A check in `lib/host.sh` that `check_host_fixes` runs, so a missing rule
-  shows up like the bwrap one does.
-- Keymapp itself: nixpkgs `keymapp` (unfree; check) in the profile of each
-  machine the keyboard goes to (personal; lely too?).
-- The Navigator's touchpad: tap-and-drag-lock (and the two it builds on) is
-  set by hand for now with `gsettings set
-  org.gnome.desktop.peripherals.touchpad <key> true` for `tap-to-click`,
-  `tap-and-drag` and `tap-and-drag-lock`. Move them to Home Manager:
-  `dconf.settings."org/gnome/desktop/peripherals/touchpad"`, as
-  `home/modules/gnome-keys.nix` does for keybindings (in a new module, or
-  widen that one to a `gnome.nix`), imported by `personal` (so lely gets it
-  too). GNOME applies these to every touchpad, the laptop's too.
-
-Then: plug in, check that Keymapp finds the keyboard and can flash it.
+- `nix-switch.sh`, then `host-setup.sh` reports no ZSA warning.
+- Plug in, check that Keymapp starts from the launcher, finds the keyboard and
+  can flash it. The nixGL wrap is untested: if the window stays blank or
+  Keymapp dies with an EGL error, that's the place to look.
+- On lely: `host-setup.sh apply` installs the rules there.
 
 ### 2026-11-05 · How I take in changes from Claude and Copilot
 

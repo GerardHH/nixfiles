@@ -47,6 +47,11 @@
 
             pkgs = import nixpkgs {
                 inherit system;
+                config.allowUnfreePredicate =
+                    pkg:
+                    builtins.elem (nixpkgs.lib.getName pkg) [
+                        "keymapp"
+                    ];
                 overlays = [
                     nixgl.overlays.default
                     (_final: _prev: { inherit (unstable) claude-code; })
