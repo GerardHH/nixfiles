@@ -1,0 +1,22 @@
+# udev rules for the ZSA Voyager: lets Keymapp and Oryx (in the browser) reach
+# the keyboard without root. Installed to /etc/udev/rules.d/50-zsa.rules.
+#
+# Taken from ZSA's Linux install page (github.com/zsa/wally/wiki/Linux-install,
+# last edited 2026-05-19), Voyager lines only. The page covers every ZSA
+# keyboard and says to copy only the relevant blocks. Left out: the Ergodox EZ
+# (vendor 16c0), the Moonlander and Planck EZ (0483, feed), and the legacy
+# webusb live-training rules, which firmware v21 and later no longer needs.
+#
+# 3297 is ZSA's USB vendor id, so these lines match any ZSA keyboard, in normal
+# mode and in its bootloader alike.
+
+# Oryx web flashing and live training: the browser and Keymapp talk to the
+# keyboard's hidraw node. Readable by everyone, writable by group plugdev.
+KERNEL=="hidraw*", ATTRS{idVendor}=="3297", MODE="0664", GROUP="plugdev"
+
+# Keymapp flashing: write access to the raw USB device, including while it
+# sits in the bootloader. MODE:= sets the mode and stops later rules from
+# changing it. ZSA picks 0666 (any local user may write); kept as shipped
+# rather than narrowing it to plugdev, so flashing matches their tested setup.
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="3297", MODE:="0666", SYMLINK+="ignition_dfu", GROUP="plugdev"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="3297", MODE="0666", GROUP="plugdev"
