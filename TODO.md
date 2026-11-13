@@ -425,25 +425,54 @@ branch fetched and a local diff view. Check first which forge work uses, and
 whether it's a self-hosted GitLab. Tokens: same question as "Copilot CLI in
 the container" (sops through `nixfiles-secrets`), plus `gh`/`glab auth`.
 
-### 2026-11-03 · Quickfix list instead of fzf for lists of results
+### 2026-11-13 · Lists of results: quickfix, quicker.nvim or trouble.nvim
 
-Use the quickfix list where the result is a list to work through, and keep
-fzf-lua for picking one thing (files, buffers, help, keymaps, commands). Now in
+Where the result is a list to work through (references, diagnostics, grep
+hits), show it as a list that stays open, and keep fzf-lua for picking one
+thing (files, buffers, help, keymaps, commands). Now in
 `config/nvim/lua/plugins/fzf.lua`: `<leader>lf` (`FzfLua lsp_finder`,
 references and the like), `<leader>ld`/`<leader>lD` (diagnostics),
 `<leader>fs`/`<leader>fc` (grep). Already on quickfix: `<leader>Cd`
 (diagnostics, in `nvim-bqf.lua`), `<leader>vt` (todo-comments), and nvim's own
 defaults `grr` (references), `gri` (implementations) and `gO` (document
-symbols, location list). Options per list: plain `vim.lsp.buf.references()`
-and friends, `:grep` with ripgrep as `grepprg`, or keep fzf-lua and send its
-results on (it has an action to send the selection to quickfix; check the
-key). `:colder`/`:cnewer` bring back earlier lists. Keys to the layers in
-`README.md` (`<leader>C` is Quickfix).
+symbols, location list). Ways in: plain `vim.lsp.buf.references()` and
+friends (their `on_list` option sends results anywhere), `:grep` with ripgrep
+as `grepprg`, or keep fzf-lua and send its results on (it has actions to send
+the selection to quickfix or to trouble; check the keys).
 
-Together with quicker.nvim (from "nvim plugins to evaluate" in Later): an
-editable quickfix buffer that writes edits back to the files, context lines
-around entries, a tidier layout. nvim-bqf is in use already (preview window,
-fzf filter); check whether the two work together, or which to keep.
+Where the list lives, to compare:
+
+- Plain quickfix with nvim-bqf, as now (`nvim-bqf.lua`: preview window, fzf
+  filter). `:colder`/`:cnewer` bring back earlier lists, `:packadd cfilter`
+  gives `:Cfilter` to narrow one. The quickfix list is also what `:cdo`,
+  `:cfile` and `:Gitsigns setqflist` use, so the agent review flow in Now
+  runs on it whatever we pick here.
+- quicker.nvim (stevearc): a better quickfix buffer, not a new list. Edit the
+  lines and `:w` writes them back to the files (rename or fix across all
+  hits), expand and collapse context lines around an entry (keys of our own,
+  its README uses `>`/`<`), aligned columns with highlighted code. Check
+  whether it works beside nvim-bqf (both take over the qf window) or which to
+  keep.
+- trouble.nvim (folke, v3): its own list window beside quickfix, grouped per
+  file as a tree, with preview, follow-cursor and refresh as you edit.
+  Modes quickfix lacks: `lsp` (definitions, references, implementations and
+  type definitions in one, like `lsp_finder`), `lsp_incoming_calls` and
+  `lsp_outgoing_calls` (call hierarchy as a tree), `symbols` (document
+  outline, in place of `gO`), `diagnostics` filtered per buffer or severity.
+  It can show the quickfix and location lists too (`qflist`, `loclist`).
+  Catppuccin's `lsp_trouble = true` is already on in `catppuccin.lua`.
+  Downside: a second list with its own keys; quickfix stays for `:cdo` and
+  the like.
+- Likely shape: quickfix (with quicker or bqf) as the queue to work through
+  and edit; trouble for exploring LSP results (references, call hierarchy,
+  symbols). Decide per list which one it goes to.
+- More to look at: glance.nvim (references and definitions in a VSCode-like
+  peek float, editable in place; check it's maintained), and outline plugins
+  (aerial.nvim, outline.nvim) if trouble's `symbols` falls short.
+
+Keys to the layers in `README.md` and the groups in `which-key.lua`
+(`<leader>C` is Quickfix, `<leader>l` LSP); trouble's keys go under one of
+those, not a group of its own.
 
 ## Later
 
