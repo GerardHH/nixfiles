@@ -24,22 +24,6 @@ Delete an item when it's done; git history keeps it.
 
 ## Now
 
-### 2026-11-13 · Keymapp for the ZSA Voyager
-
-Set up Keymapp, ZSA's app for flashing the Voyager and viewing its layout.
-Written: `home/modules/zsa.nix` (Keymapp wrapped in nixGL, the touchpad's
-dconf keys), imported by `personal` (lely inherits it); `keymapp` allowed as
-unfree in `flake.nix`; the udev rules as a host fix (`check_zsa_udev_rules` in
-`lib/host.sh`, run by `host-setup.sh` and personal's `preflight.sh`;
-`host-setup.sh apply` now applies every fix). Rules and `plugdev` already in
-place on the personal laptop.
-
-- `nix-switch.sh`, then `host-setup.sh` reports no ZSA warning.
-- Plug in, check that Keymapp starts from the launcher, finds the keyboard and
-  can flash it. The nixGL wrap is untested: if the window stays blank or
-  Keymapp dies with an EGL error, that's the place to look.
-- On lely: `host-setup.sh apply` installs the rules there.
-
 ### 2026-11-14 · How I take in changes from Claude and Copilot
 
 The current flow doesn't work well. Claude writes complete files to
