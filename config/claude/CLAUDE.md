@@ -7,20 +7,21 @@
   `diff`, `log`, `show`) is fine.
 - After a turn that changed files in a git repository, rewrite
   `.agent-notes.md` at its root so it describes what's still unstaged, not
-  a history. `<leader>Cg` in nvim loads the changes with these notes into
-  the quickfix list. The shape:
+  a history. `<leader>qg` in nvim lists the changes with these notes in
+  trouble.nvim. The shape:
 
   ```markdown
-  # nvim: Review agent changes from the quickfix list
+  # nvim: Review agent changes in trouble.nvim
 
   What the change as a whole does, a few lines, kept current.
 
   This round: what this turn did, in reply to my last message.
 
-  ## config/nvim/lua/qf_agent_changes.lua
+  ## config/nvim/local-plugins/agent-review/lua/agent_review/init.lua
 
-  - `7-18` — why, in one sentence · new
-  - `92` — why
+  - `7-18` — what changed and why, a sentence or two · new
+  - `92` — what changed and why
+  - `120`, `134-140` — one note for changes that belong together
   ```
 
   - Title: the change as a commit subject, in the repository's commit style
@@ -28,6 +29,10 @@
   - One `## path` heading per file, path from the repository root; under
     it one item per change on one line, its lines in the working tree as
     `git diff --unified=0` gives them (`1` for a new or deleted file).
+    Changes that share a note go in one item, their lines separated by
+    commas.
+  - Notes as full as the chat summary's lines: what changed and why, not
+    just a label; the list wraps them.
   - `· new` at the end of items added or changed this turn.
   - Cover every unstaged hunk and untracked file you made, this turn's and
     earlier ones I haven't staged or reset yet; drop the items for the rest.

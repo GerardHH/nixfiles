@@ -38,6 +38,7 @@ return {
             { "<leader>m", group = "Bookmark", mode = { "n", "o", "v", "x" } },
             { "<leader>n", group = "Noice", mode = { "n", "o", "v", "x" } },
             { "<leader>o", group = "Operator", mode = { "n", "o", "v", "x" } },
+            { "<leader>q", group = "Trouble", mode = { "n", "o", "v", "x" } },
             { "<leader>r", group = "Run", mode = { "n", "o", "v", "x" } },
             { "<leader>t", group = "Test", mode = { "n", "o", "v", "x" } },
             { "<leader>v", group = "View", mode = { "n", "o", "v", "x" } },

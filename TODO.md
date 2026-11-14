@@ -46,23 +46,26 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   not enforced. Enforcing it takes a literal `denyWrite` entry per repo
   (Linux sandbox paths take no wildcard but a trailing `/**`); revisit with
   the harness choice below.
-- `<leader>Cg` (`config/nvim/lua/qf_agent_changes.lua`, key in
-  `nvim-bqf.lua`): moving the cursor onto a change in a buffer makes it the
-  list's current entry, so `:cnext` goes on from there. The
-  quickfix list of unstaged hunks and untracked files, each with the agent's
-  note from `.agent-notes.md`, ignored in the new global
-  `config/git/ignore`. The agent rewrites it every turn to describe what's
-  still unstaged: a title (the commit subject), a summary with "This round",
-  a `## path` heading per file with "- `7-18` — why" items, `· new` on this
-  round's (listed first, marked `[new]`). The same text makes the chat
-  summary. Rules for both in `config/claude/CLAUDE.md`. Try it in real
-  rounds and adjust.
+- agent-review, a local plugin (`config/nvim/local-plugins/agent-review`,
+  spec and keys in `config/nvim/lua/plugins/agent-review.lua`): `<leader>qg`
+  lists the unstaged hunks and untracked files with the agent's notes from
+  `.agent-notes.md` (ignored in the global `config/git/ignore`) in
+  trouble.nvim, and shows the changes in the files inline or side by side
+  (`<leader>qs`). What it does, the notes format and its known issue (the
+  preview overlaps right after toggling to side by side) are in its
+  `README.md`. The keys load the plugin before trouble looks for its source,
+  so they stay in its own spec, not trouble's. The name is taken on GitHub
+  (joelazar/agent-review.nvim, the other direction: my comments become a
+  prompt for the agent); pick another if it's ever published. The agent
+  rewrites the notes every turn to describe what's still unstaged; the same
+  text makes the chat summary. Rules for both in `config/claude/CLAUDE.md`.
+  Try it in real rounds and adjust.
 - Taken in; the sandbox writes in the project and not elsewhere in home
-  (tested). Left: real rounds with `<leader>Cg`, to see how it works out.
+  (tested). Left: real rounds with `<leader>qg`, to see how it works out.
 - Stale note lines: after I reset or edit a hunk, the notes' line numbers
   still point at the old lines until the agent's next turn (seen: a 3-line
-  comment reset, every later note 3 lines off). Fix in
-  `qf_agent_changes.lua`: shift each note by the lines added or removed above
+  comment reset, every later note 3 lines off). Fix in agent-review
+  (`read_notes`): shift each note by the lines added or removed above
   it since the notes were written. That needs the diff at writing time to
   compare with, e.g. the agent puts each hunk's `@@` header (old-side range,
   which my edits don't move) next to the line range, and the plugin maps old
@@ -72,7 +75,7 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   open buffer. nvim's `autoread` is on by default but only acts when it
   checks, which it does on focus or shell commands, not on its own: a
   `:checktime` on `FocusGained`, `BufEnter`, `CursorHold` (and maybe a
-  `vim.uv` fs watcher, or from `<leader>Cg` itself) would pick it up. Check
+  `vim.uv` fs watcher, or from `<leader>qg` itself) would pick it up. Check
   whether tmux passes focus events (`focus-events on`).
 - Inside the sandbox, `git status` lists the protected names that don't
   exist in the project (`.bashrc`, `.gitconfig`, `.vscode`,
@@ -112,10 +115,8 @@ accepted.
   `:diffget`/`:diffput` also take single lines. Pick it together with the
   forge reviews item in Next, so one diff view serves both.
 - Also to compare: codediff.nvim (VSCode-style diff with a list of changed
-  files; check). The list of changed files may come from trouble.nvim
-  instead (`:Gitsigns setqflist all` shown in its `qflist` mode, grouped per
-  file; see the quickfix item in Next), which would leave codediff.nvim only
-  its diff rendering.
+  files; check). Its list of changed files is covered by `<leader>qg` in
+  trouble now, which leaves codediff.nvim only its diff rendering.
 - Jump between hunks: `]c`/`[c` (gitsigns' `nav_hunk`, nvim's own `]c` in a
   diff window) beside `<leader>ghn`/`<leader>ghp`
   (`config/nvim/lua/plugins/git.lua`). mini.diff overlaps gitsigns (signs,
@@ -548,7 +549,12 @@ branch fetched and a local diff view. Check first which forge work uses, and
 whether it's a self-hosted GitLab. Tokens: same question as "Copilot CLI in
 the container" (sops through `nixfiles-secrets`), plus `gh`/`glab auth`.
 
-### 2026-11-13 · Lists of results: quickfix, quicker.nvim or trouble.nvim
+### 2026-11-14 · Lists of results in trouble.nvim
+
+Decided: trouble everywhere a list is to work through. It's installed
+(`config/nvim/lua/plugins/trouble.lua`) and shows the agent's changes
+(`<leader>qg`); next are the LSP results (references first), then
+diagnostics. What's below was the comparison; trim it as the lists move.
 
 Where the result is a list to work through (references, diagnostics, grep
 hits), show it as a list that stays open, and keep fzf-lua for picking one
@@ -568,8 +574,9 @@ Where the list lives, to compare:
 - Plain quickfix with nvim-bqf, as now (`nvim-bqf.lua`: preview window, fzf
   filter). `:colder`/`:cnewer` bring back earlier lists, `:packadd cfilter`
   gives `:Cfilter` to narrow one. The quickfix list is also what `:cdo`,
-  `:cfile` and `:Gitsigns setqflist` use, so the agent review flow in Now
-  runs on it whatever we pick here.
+  `:cfile` and `:Gitsigns setqflist` use. nvim-bqf's preview pops up as a
+  float, which I found annoying in the agent review; trouble previews in
+  the main window instead.
 - quicker.nvim (stevearc): a better quickfix buffer, not a new list. Edit the
   lines and `:w` writes them back to the files (rename or fix across all
   hits), expand and collapse context lines around an entry (keys of our own,
@@ -586,9 +593,8 @@ Where the list lives, to compare:
   Catppuccin's `lsp_trouble = true` is already on in `catppuccin.lua`.
   Downside: a second list with its own keys; quickfix stays for `:cdo` and
   the like.
-- Likely shape: quickfix (with quicker or bqf) as the queue to work through
-  and edit; trouble for exploring LSP results (references, call hierarchy,
-  symbols). Decide per list which one it goes to.
+- Open: whether quickfix keeps a role beside trouble (`:cdo`, editing hits
+  with quicker), and whether nvim-bqf stays at all.
 - More to look at: glance.nvim (references and definitions in a VSCode-like
   peek float, editable in place; check it's maintained), and outline plugins
   (aerial.nvim, outline.nvim) if trouble's `symbols` falls short.
@@ -598,6 +604,24 @@ Keys to the layers in `README.md` and the groups in `which-key.lua`
 those, not a group of its own.
 
 ## Later
+
+### 2026-11-14 · Existing plugins instead of agent-review
+
+Check whether one of these could replace our local agent-review plugin
+(`config/nvim/local-plugins/agent-review`, see "How I take in changes" in
+Now), or has ideas worth taking. What ours does that matters: works on
+plain git for any agent (staged means accepted), the agent's notes per hunk
+grouped by round, in trouble.nvim, the diff inline or side by side. Seen
+only in search results so far; read the READMEs and check how maintained:
+
+- review.nvim (georgeguimaraes/review.nvim): review plugin for AI-written
+  changes.
+- code-preview.nvim (Cannon07/code-preview.nvim): catches the agent's
+  edits before they reach disk and shows them as a native nvim diff; accept
+  and reject stay in the agent's CLI. Backends for Claude Code, OpenCode,
+  Copilot CLI and Codex CLI.
+- hunk-review.nvim (shaunchander/hunk-review.nvim): two-pane reviewer on
+  `git diff`, made for AI-written code; exports hunks as JSON for agents.
 
 ### 2026-10-26 · Publish neotest-testmate as a plugin
 

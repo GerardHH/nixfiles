@@ -24,11 +24,8 @@ return {
             function() vim.diagnostic.setqflist() end,
             desc = "Qf fill with diagnostics",
         },
-        {
-            "<leader>Cg",
-            function() require("qf_agent_changes").to_quickfix() end,
-            desc = "Qf fill with unstaged git changes",
-        },
+        -- The agent's changes moved to trouble.nvim (<leader>qg, agent-review.lua);
+        -- require("agent_review").to_quickfix() still fills this list.
     },
     opts = {},
 }
