@@ -40,7 +40,7 @@ place on the personal laptop.
   Keymapp dies with an EGL error, that's the place to look.
 - On lely: `host-setup.sh apply` installs the rules there.
 
-### 2026-11-05 · How I take in changes from Claude and Copilot
+### 2026-11-14 · How I take in changes from Claude and Copilot
 
 The current flow doesn't work well. Claude writes complete files to
 `/tmp/claude-1000/<project>/<path in project>` and shows edits as line ranges
@@ -75,6 +75,16 @@ accepted.
   `config/nvim/lua/plugins/difftool.lua`) or diffview.nvim, where
   `:diffget`/`:diffput` also take single lines. Pick it together with the
   forge reviews item in Next, so one diff view serves both.
+- Also to compare: codediff.nvim (VSCode-style diff with a list of changed
+  files; check). The list of changed files may come from trouble.nvim
+  instead (`:Gitsigns setqflist all` shown in its `qflist` mode, grouped per
+  file; see the quickfix item in Next), which would leave codediff.nvim only
+  its diff rendering.
+- Jump between hunks: gitsigns has `<leader>ghn`/`<leader>ghp` now
+  (`config/nvim/lua/plugins/git.lua`); add `]c`/`[c` as in gitsigns' README
+  (`nav_hunk`, falling back to nvim's own `]c` in a diff window). mini.diff
+  overlaps gitsigns (signs, hunks, staging); only worth it for its overlay of
+  the diff in the buffer, which gitsigns' `preview_hunk_inline` partly gives.
 - Keep the agent's changes apart from mine: start from a clean tree (commit or
   stash first), or give the agent its own worktree. With writes in the repo
   allowed, the worktree's metadata in `.git` is no longer a problem.
@@ -93,6 +103,15 @@ accepted.
   `vim.diagnostic.set` under its own namespace. Check whether coderabbit.nvim
   can take another CLI (`cli.binary`, `cli.extra_args`; it parses `cr`'s
   output, so likely not), else a small plugin of our own.
+- Pointing the agent at code: keys that copy a reference to the clipboard,
+  `path/from/root/file.txt:42` for the cursor, `file.txt:42-58` for a visual
+  range, the root as for the status line in "nvim wishes" in Next (git root,
+  else the cwd). Maybe: the selection as a fenced code block with the
+  language from `filetype` (```` ```cpp ````; a small map where names
+  differ, e.g. `sh` → `bash`), the reference above it. claudecode.nvim
+  (below) sends a selection to Claude as an @-mention itself; these keys
+  work for any agent and any chat. A group of their own, e.g. `<leader>y`
+  (free now).
 
 Instead of or on top of that, approval per edit as it happens, from nvim:
 
@@ -284,6 +303,96 @@ Then:
   to match what we pick.
 
 ## Next
+
+### 2026-11-14 · nvim wishes
+
+From my notes; each a small change in `config/nvim`. Keys to the layers in
+`README.md` and the groups in `which-key.lua`.
+
+Looks:
+
+- Highlight the enclosing brackets with the cursor between them. nvim's own
+  matchparen only does so with the cursor on a bracket. Without a plugin: a
+  `CursorMoved` autocmd (debounced) that finds the enclosing pair
+  (`searchpairpos`, skipping strings and comments, or the treesitter node)
+  and marks both ends with extmarks in a namespace of its own. Plugin
+  alternative: vim-matchup (`matchup_matchparen_hi_surround_always`; check).
+- One global status line: `globalstatus = true` in
+  `config/nvim/lua/plugins/lualine.lua` (`laststatus=3`). Check the dap-ui
+  and neotest windows: their `panels` extension there then shows only while
+  one has focus, and they lose their own titles (a `winbar` per panel could
+  take that over). File name as a path from the project root
+  (`vim.fs.root(0, ".git")`, else the cwd): lualine's `filename` with
+  `path = 1` is relative to the cwd only, so a small function of our own.
+  The path is also what the copy-a-reference keys in Now use. Look into how
+  to show which window is current once windows have no status line of their
+  own: a `winbar` with the file name, dimmed in the others (`WinBarNC`);
+  inactive windows dimmed (`NormalNC`); a coloured `WinSeparator` for the
+  active window (through its `winhighlight`; check); the cursorline wish
+  below helps too. Ties in with "Merge nvim's statusline into the tmux
+  status" in Later.
+- Current line only in the active window: `cursorline` is on already
+  (`config/nvim/lua/options/init.lua`), but it's window-local, so every
+  window shows one. `WinEnter`/`WinLeave` autocmds turn it on and off, no
+  plugin. Inactive windows draw no cursor, so what looks like a second
+  cursor is likely their cursorline (check).
+
+Editing:
+
+- Persistent undo: `undofile = true`, files in `~/.local/state/nvim/undo`.
+  Check whether that survives a container rebuild (volume?), and prune old
+  files now and then (nvim never does).
+- `]]`/`[[` to the next/previous occurrence of the word under the cursor, and
+  all occurrences highlighted. Now: LSP `document_highlight` on `CursorHold`
+  marks references already (`LspAttach` in
+  `config/nvim/lua/plugins/lsp.lua`); `*`/`#` jump by text. `]]`/`[[` are
+  nvim's section motions (`{` in column 1), rarely useful. Options: keys of
+  our own over the `textDocument/documentHighlight` positions, falling back
+  to `*`/`#` without LSP; or snacks.nvim's `words` module, which does this
+  on `]]`/`[[` (see "nvim plugins to evaluate" in Later).
+- Format only changed lines: `vim.lsp.buf.format({ range = … })` per hunk
+  from `require("gitsigns").get_hunks()`, in the `BufWritePre` autocmd in
+  `lsp.lua`. Needs range formatting from the formatter: clang-format and
+  stylua through none-ls (check); black has `--line-ranges`; nixfmt and
+  shfmt have none (whole file, or skip). conform.nvim has a recipe for it
+  (check). Maybe per repo: whole file in mine, changed lines at work.
+- Toggle format on save: `vim.g.format_on_save` (session) and
+  `vim.b.format_on_save` (buffer, from `.editorconfig`) exist in `lsp.lua`;
+  add a `:FormatToggle` command (buffer or session) and a key, and show the
+  state in the status line. rustaceanvim's own `BufWritePre` in `lsp.lua`
+  formats `*.rs` regardless; route it through the same check.
+
+Windows and tabs:
+
+- `s` as the prefix for windows (move, split, close, resize, maximize), like
+  `<C-w>`. `s` is free: nvim's substitute (`cl` does the same), flash's char
+  mode is off and flash sits on `<CR>`, nvim-surround uses `ys`/`ds`/`cs`
+  and visual `S`. Now: `<C-h/j/k/l>` to move (stays, Ctrl layer), the
+  `<leader>S` Split group (`config/nvim/lua/keymaps.lua`), `<C-arrows>` to
+  resize, `<leader>vsf` to maximize (vim-maximizer). Decide what moves.
+- Tabs as sets of windows (code, a review, debugging). Tabline only with two
+  or more tabs (`showtabline = 1`, the default), a tab marked when one of
+  its windows shows a modified buffer (`[+]` or a nerdfont glyph): our own
+  `tabline` function, or lualine's `tabline` with its `tabs` component.
+  Names: set by hand (`vim.t.name`, a rename key), else the first window's
+  buffer. Keys for new, close, move, next/previous (`H`/`L` cycle buffers
+  now; `gt`/`gT`, or under the `s` prefix). Check that resession keeps tabs
+  and their names.
+
+Files and git:
+
+- File explorer: mini.files now (`<leader>ve`, preview on, in `mini.lua`;
+  syncs with `=`). oil.nvim has previews now too: compare, as a float
+  (`oil.open_float`), syncing on `:w`. Or keep mini.files, if it can sync on
+  `:w` (check its docs; else a `BufWriteCmd` that calls
+  `MiniFiles.synchronize()`).
+- lazygit's `e`: `os.editPreset: "nvim"` in `config/lazygit/config.yml`
+  starts a new nvim, also from `<leader>gg` (lazygit.nvim's float).
+  lazygit's `nvim-remote` preset does both: inside nvim (`$NVIM` is set in
+  its terminals) it opens the file in that nvim, on its own it starts nvim
+  (check how it closes lazygit.nvim's float). First hunk on open: a custom
+  `edit` command with `+'Gitsigns nav_hunk first'` (check that gitsigns has
+  attached by then; it does so async).
 
 ### 2026-10-04 · setlocale warnings in the work container
 
@@ -650,11 +759,12 @@ in nvim itself, which also covers the container:
   cursor into a float.
 - Check whether Alacritty has gained a graphics protocol by then.
 
-### 2026-11-11 · nvim plugins to evaluate
+### 2026-11-14 · nvim plugins to evaluate
 
 - snacks.nvim (folke): a bundle of small modules (picker, image, notifier,
-  dashboard, …), each enabled on its own. Its `image` module is a candidate for
-  "Mermaid diagrams inline in nvim" above; its picker overlaps fzf-lua.
+  dashboard, words, …), each enabled on its own. Its `image` module is a
+  candidate for "Mermaid diagrams inline in nvim" above, its `words` for the
+  `]]`/`[[` wish in "nvim wishes" in Next; its picker overlaps fzf-lua.
 - nvim-hlslens: match index next to search results.
 - blink-ripgrep.nvim: blink.cmp source with words from the whole project.
 - treesj: split/join on treesitter nodes; overlaps mini.splitjoin.
@@ -692,7 +802,7 @@ in comments and Markdown). ltex-ls-plus (LanguageTool) is heavier, on a JRE.
 - TUIOS: window manager inside the terminal.
 - superfile: file manager; compare with yazi, which is in use now.
 
-### 2026-10-13 · Merge nvim's statusline into the tmux status
+### 2026-11-14 · Merge nvim's statusline into the tmux status
 
 Show nvim's statusline (lualine, `config/nvim/lua/plugins/lualine.lua`) in the
 tmux status, which already sits at the top (`status-position top` in
@@ -705,8 +815,9 @@ any option below. Options:
   sets `laststatus=0`. Needs `focus-events on`. Its autoembed takes over
   `status-left`/`status-right`, which catppuccin-tmux fills now; else
   `g:tpipeline_autoembed = 0` and put its `#(cat …vimbridge)` in our own
-  status format. Splits lose their own status line (lualine has no
-  `globalstatus` now); a `winbar` with the file name covers that. Check what
+  status format. Splits lose their own status line, as with the global
+  status line in "nvim wishes" in Next (do that first); a `winbar` with the
+  file name covers that. Check what
   the status shows when the focus moves to a pane without nvim.
 - Own bridge, no plugin: autocmds (`ModeChanged`, `BufEnter`,
   `DiagnosticChanged`, …) run `tmux set-option -p @nvim_mode …` for
