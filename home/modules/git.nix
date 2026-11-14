@@ -16,5 +16,6 @@
     xdg.configFile = {
         "lazygit".source = link "config/lazygit";
         "git/gitconfig-lely-guard".source = link "config/git/gitconfig-lely-guard";
+        "git/ignore".source = link "config/git/ignore";
     };
 }

@@ -22,16 +22,53 @@ Delete an item when it's done; git history keeps it.
   the same or can get it through MCP. Ties in with "Copilot CLI in the
   container" in Next.
 
+- 2026-11-14 · Sandbox read denials with a leading `**` don't work on Linux:
+  `Read(//**/.env)` and `Read(//**/secrets.d/**)` in
+  `config/claude/settings.json` stop the Read tool only; a sandboxed `cat` of
+  a `.env` succeeds (tested). Linux takes a wildcard only after the first
+  directory name, so e.g. `~/**/.env`, `/run/**/secrets.d`; check which
+  paths matter.
+
 ## Now
 
 ### 2026-11-14 · How I take in changes from Claude and Copilot
 
-The current flow doesn't work well. Claude writes complete files to
-`/tmp/claude-1000/<project>/<path in project>` and shows edits as line ranges
-in chat (rules in `config/claude/CLAUDE.md`); `claude-diff` and `claude-take`
-(`config/bash/claude.sh`) review and copy them in. With neotest-testmate I
-took the changes into the repo first and reviewed them there instead. Now that
-I'm more at ease with Claude, look for a better way.
+The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
+`claude-take` (`config/bash/claude.sh`), didn't work well. Easy path first
+(proposed 2026-11-14): Claude writes in the project, I review through git.
+
+- `config/claude/settings.json`: `Edit(~/**)` and the sandbox's `~` and
+  `~/nixfiles` write denials gone (a `denyWrite` entry overrides the working
+  directory's default write access, so `~` had to go too);
+  `blockWritesOutsideWorkingDirectories` keeps the Edit tool in the project
+  and `/tmp/claude-1000` (`additionalDirectories`). `.git` stays writable
+  for now: "don't stage or commit" is a rule in `config/claude/CLAUDE.md`,
+  not enforced. Enforcing it takes a literal `denyWrite` entry per repo
+  (Linux sandbox paths take no wildcard but a trailing `/**`); revisit with
+  the harness choice below.
+- `<leader>Cg` (`config/nvim/lua/qf_agent_changes.lua`, key in
+  `nvim-bqf.lua`): moving the cursor onto a change in a buffer makes it the
+  list's current entry, so `:cnext` goes on from there. The
+  quickfix list of unstaged hunks and untracked files, each with the agent's
+  note from `.agent-notes.md`, ignored in the new global
+  `config/git/ignore`. The agent rewrites it every turn to describe what's
+  still unstaged: a title (the commit subject), a summary with "This round",
+  a `## path` heading per file with "- `7-18` — why" items, `· new` on this
+  round's (listed first, marked `[new]`). The same text makes the chat
+  summary. Rules for both in `config/claude/CLAUDE.md`. Try it in real
+  rounds and adjust.
+- Taken in; the sandbox writes in the project and not elsewhere in home
+  (tested). Left: real rounds with `<leader>Cg`, to see how it works out.
+- Inside the sandbox, `git status` lists the protected names that don't
+  exist in the project (`.bashrc`, `.gitconfig`, `.vscode`,
+  `.claude/settings.json`, …) as untracked: bwrap's mount points, visible
+  only in the sandbox's view, not on disk. Only the agent's own git checks
+  see them.
+- Still on proposals: Claude Code's own settings (`config/claude/`), which it
+  refuses to write anyway, so `claude.sh` stays for those.
+- nixfiles caveat: its configs are linked live (`config/bashrc`,
+  `config/nvim`), so an edit there runs outside the sandbox at my next shell
+  or nvim start, before I've reviewed it.
 
 Goal: one setup, done once, that serves Claude Code and Copilot CLI alike (see
 "Copilot CLI in the container" in Next). The agent may write in the project,
@@ -72,12 +109,9 @@ accepted.
 - Keep the agent's changes apart from mine: start from a clean tree (commit or
   stash first), or give the agent its own worktree. With writes in the repo
   allowed, the worktree's metadata in `.git` is no longer a problem.
-- Keep `.git` read-only for the agent (sandbox `denyWrite`), so it can't stage
-  or commit: staged then always means I accepted it. Check that both agents
-  can still run read-only git (`status`, `diff`, `log`) that way.
-- Explaining changes: the agent writes one line per change
-  (`file:line: why`) to a file I load with `:cfile`, so the reason sits next
-  to the hunk; or chat output per change, inline comments, or a mix.
+- Enforce "staged means I accepted it" for every agent: `.git` read-only
+  (per-repo sandbox entry for Claude; Copilot: check), or a harness that
+  does it once for all repos.
 - Or as git conflicts: the agent writes conflict markers, I pick a side with
   git-conflict.nvim (see its item in Next).
 - The other way round, the agent reviewing my changes: coderabbit.nvim with
@@ -277,12 +311,7 @@ prompt, so picking wrong can't happen:
 
 Then:
 
-- Drop the write denial for projects in `config/claude/settings.json`:
-  `Edit(~/**)` in `permissions.deny` and `~/nixfiles` in
-  `sandbox.filesystem.denyWrite` (`~` stays); deny `.git` instead. The same
-  for Copilot.
-- With that, `config/bash/claude.sh`, the proposal files in `/tmp/claude-1000`
-  and the `TODO.md` working copy rule in `CLAUDE.md` go.
+- The same write rules for Copilot as for Claude (see the easy path above).
 - Rewrite the rules in `config/claude/CLAUDE.md` (or the shared `AGENTS.md`)
   to match what we pick.
 

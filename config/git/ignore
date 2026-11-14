@@ -1,0 +1,5 @@
+# Claude Code's record of the files it wrote, one per directory it wrote in.
+**/.claude/.cc-writes/
+
+# An agent's notes on its unstaged changes.
+.agent-notes.md

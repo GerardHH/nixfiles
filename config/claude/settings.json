@@ -6,7 +6,6 @@
     "deny": [
       "Read(~/.ssh/**)",
       "Read(//**/.env)",
-      "Edit(~/**)",
       "Bash(sudo:*)",
       "Read(~/git/lely/**)",
       "Read(~/.config/sops/age/**)",
@@ -15,7 +14,11 @@
       "Read(~/.netrc)",
       "Read(~/.jfrog)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "blockWritesOutsideWorkingDirectories": true,
+    "additionalDirectories": [
+      "/tmp/claude-1000"
+    ]
   },
   "model": "opus",
   "statusLine": {
@@ -48,10 +51,6 @@
         "~/.cache/nix",
         "~/.local/state/nix"
       ],
-      "denyWrite": [
-        "~",
-        "~/nixfiles"
-      ],
       "denyRead": [
         "/run/user/1000/secrets.d"
       ]
@@ -59,7 +58,8 @@
   },
   "modelSettings": {
     "claude-opus-5-5": {
-      "effortLevel": "medium"
+      "effortLevel": "medium",
+      "autoCompactWindow": 400000
     }
   },
   "editorMode": "vim"
