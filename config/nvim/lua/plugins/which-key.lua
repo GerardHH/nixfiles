@@ -42,6 +42,7 @@ return {
             { "<leader>t", group = "Test", mode = { "n", "o", "v", "x" } },
             { "<leader>v", group = "View", mode = { "n", "o", "v", "x" } },
             { "<leader>vs", group = "View Split", mode = { "n", "o", "v", "x" } },
+            { "<leader>y", group = "Yank", mode = { "n", "o", "v", "x" } },
         },
     },
 }

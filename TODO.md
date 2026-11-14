@@ -59,6 +59,21 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   rounds and adjust.
 - Taken in; the sandbox writes in the project and not elsewhere in home
   (tested). Left: real rounds with `<leader>Cg`, to see how it works out.
+- Stale note lines: after I reset or edit a hunk, the notes' line numbers
+  still point at the old lines until the agent's next turn (seen: a 3-line
+  comment reset, every later note 3 lines off). Fix in
+  `qf_agent_changes.lua`: shift each note by the lines added or removed above
+  it since the notes were written. That needs the diff at writing time to
+  compare with, e.g. the agent puts each hunk's `@@` header (old-side range,
+  which my edits don't move) next to the line range, and the plugin maps old
+  ranges onto the live `git diff --unified=0`. Simpler fallback: snap each
+  note to the nearest live hunk, and drop notes with no hunk left.
+- Live reload: after the agent's turn I had to `:e` to see its changes in an
+  open buffer. nvim's `autoread` is on by default but only acts when it
+  checks, which it does on focus or shell commands, not on its own: a
+  `:checktime` on `FocusGained`, `BufEnter`, `CursorHold` (and maybe a
+  `vim.uv` fs watcher, or from `<leader>Cg` itself) would pick it up. Check
+  whether tmux passes focus events (`focus-events on`).
 - Inside the sandbox, `git status` lists the protected names that don't
   exist in the project (`.bashrc`, `.gitconfig`, `.vscode`,
   `.claude/settings.json`, …) as untracked: bwrap's mount points, visible
@@ -121,15 +136,12 @@ accepted.
   `vim.diagnostic.set` under its own namespace. Check whether coderabbit.nvim
   can take another CLI (`cli.binary`, `cli.extra_args`; it parses `cr`'s
   output, so likely not), else a small plugin of our own.
-- Pointing the agent at code: keys that copy a reference to the clipboard,
-  `path/from/root/file.txt:42` for the cursor, `file.txt:42-58` for a visual
-  range, the root as for the status line in "nvim wishes" in Next (git root,
-  else the cwd). Maybe: the selection as a fenced code block with the
-  language from `filetype` (```` ```cpp ````; a small map where names
-  differ, e.g. `sh` → `bash`), the reference above it. claudecode.nvim
-  (below) sends a selection to Claude as an @-mention itself; these keys
-  work for any agent and any chat. A group of their own, e.g. `<leader>y`
-  (free now).
+- Pointing the agent at code: `<leader>yr` copies `path/from/root:42`, or
+  `:42-58` for a visual range (`config/nvim/lua/copy_reference.lua`, git
+  root else the cwd; the root the status line in "nvim wishes" in Next can
+  reuse). Maybe: the selection as a fenced code block with the language from
+  `filetype` (```` ```cpp ````; a small map where names differ, e.g. `sh` →
+  `bash`), the reference above it, on another `<leader>y` key.
 
 Instead of or on top of that, approval per edit as it happens, from nvim:
 

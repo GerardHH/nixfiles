@@ -39,3 +39,16 @@ keymap("n", "<leader>Sq", "<CMD>bd<CR>", { desc = "Split quit" })
 keymap("n", "<leader>vh", "<CMD>checkhealth<CR>", { desc = "View health" })
 keymap("n", "<leader>vl", "<CMD>Lazy<CR>", { desc = "View lazy" })
 keymap("n", "<leader>vm", "<CMD>messages<CR>", { desc = "View messages" })
+-- Yank: copy a `path:line` reference for pointing an agent at code (copy_reference.lua)
+keymap(
+    "n",
+    "<leader>yr",
+    function() require("copy_reference").copy_cursor() end,
+    { desc = "Yank reference (path:line)" }
+)
+keymap(
+    "x",
+    "<leader>yr",
+    function() require("copy_reference").copy_selection() end,
+    { desc = "Yank reference (path:first-last)" }
+)
