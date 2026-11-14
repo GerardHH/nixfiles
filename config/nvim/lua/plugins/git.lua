@@ -48,6 +48,28 @@ return {
             { "<leader>ghr", "<CMD>Gitsigns reset_hunk<CR>", desc = "Git Hunk reset" },
             { "<leader>ghs", "<CMD>Gitsigns stage_hunk<CR>", desc = "Git Hunk stage" },
             { "<leader>ghu", "<CMD>Gitsigns undo_stage_hunk<CR>", desc = "Git Hunk undo stage hunk" },
+            {
+                "]c",
+                function()
+                    if vim.wo.diff then
+                        vim.cmd.normal({ "]c", bang = true })
+                    else
+                        require("gitsigns").nav_hunk("next")
+                    end
+                end,
+                desc = "Git Hunk next",
+            },
+            {
+                "[c",
+                function()
+                    if vim.wo.diff then
+                        vim.cmd.normal({ "[c", bang = true })
+                    else
+                        require("gitsigns").nav_hunk("prev")
+                    end
+                end,
+                desc = "Git Hunk previous",
+            },
         },
         opts = {},
     },

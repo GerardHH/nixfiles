@@ -101,11 +101,11 @@ accepted.
   instead (`:Gitsigns setqflist all` shown in its `qflist` mode, grouped per
   file; see the quickfix item in Next), which would leave codediff.nvim only
   its diff rendering.
-- Jump between hunks: gitsigns has `<leader>ghn`/`<leader>ghp` now
-  (`config/nvim/lua/plugins/git.lua`); add `]c`/`[c` as in gitsigns' README
-  (`nav_hunk`, falling back to nvim's own `]c` in a diff window). mini.diff
-  overlaps gitsigns (signs, hunks, staging); only worth it for its overlay of
-  the diff in the buffer, which gitsigns' `preview_hunk_inline` partly gives.
+- Jump between hunks: `]c`/`[c` (gitsigns' `nav_hunk`, nvim's own `]c` in a
+  diff window) beside `<leader>ghn`/`<leader>ghp`
+  (`config/nvim/lua/plugins/git.lua`). mini.diff overlaps gitsigns (signs,
+  hunks, staging); only worth it for its overlay of the diff in the buffer,
+  which gitsigns' `preview_hunk_inline` partly gives.
 - Keep the agent's changes apart from mine: start from a clean tree (commit or
   stash first), or give the agent its own worktree. With writes in the repo
   allowed, the worktree's metadata in `.git` is no longer a problem.
