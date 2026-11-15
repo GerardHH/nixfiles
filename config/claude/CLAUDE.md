@@ -38,9 +38,18 @@
   - Cover every unstaged hunk and untracked file you made, this turn's and
     earlier ones I haven't staged or reset yet; drop the items for the rest.
     A new change, with a different title, starts the file afresh.
-- After writing Markdown, run the project's Markdown linter with its config
-  (e.g. `rumdl check`, `.rumdl.toml`) and fix the warnings in the lines you
-  touched, `.agent-notes.md` included; leave the rest of the file as it is.
+- Before ending a turn that changed files, run on each file you touched the
+  project's formatter and every analyzer it has for that language, with the
+  project's configs: linters, type checkers, language servers' command-line
+  checks (e.g. `rumdl check` with `.rumdl.toml`; `lua-language-server
+  --check` with the settings nvim's `lua_ls` gets in
+  `config/nvim/lua/plugins/lsp.lua`; `shellcheck`, `nixfmt`, `clang-tidy`).
+  Look for them in the project's configs, Makefile and editor setup, and run
+  them from the scratchpad if they write anything. Fix the warnings in the
+  lines you touched, `.agent-notes.md` included, and leave the rest of the
+  file as it is. Don't go by the diagnostics Claude Code shows after edits
+  alone: its language servers don't get the project's settings. Say in the
+  summary what ran, and any warning you left and why.
 - Experiments, scratch builds, copies for running tests, and logs go in the
   session scratchpad, not in the project.
 - End a turn that changed files with the same summary in chat: the notes

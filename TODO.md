@@ -15,12 +15,20 @@ Delete an item when it's done; git history keeps it.
 
 ## Inbox
 
-- 2026-10-21 · Give Claude Code and Copilot CLI access to language servers
+- 2026-11-15 · Give Claude Code and Copilot CLI access to language servers
   (clangd, nixd, …), as Copilot has through VSCode: definitions, references and
   diagnostics instead of grep. Claude Code already has an `LSP` tool (fed by
   plugins); check what it needs to use our servers, and whether Copilot CLI has
   the same or can get it through MCP. Ties in with "Copilot CLI in the
-  container" in Next.
+  container" in Now. Claude Code's lua_ls runs without nvim's settings (no
+  `$VIMRUNTIME`, busted or luassert types), so its diagnostics after an edit
+  flag `vim` as undefined in every file and bury the real warnings; a
+  `.luarc.json` per Lua project, or the settings from `lsp.lua`, would fix it.
+
+- 2026-11-15 · A `PostToolUse` hook on Edit/Write in
+  `config/claude/settings.json` that runs the file's formatter and analyzers
+  and hands the warnings back to the agent, so linting doesn't depend on a
+  CLAUDE.md rule being followed. Copilot CLI: check whether it has hooks.
 
 - 2026-11-14 · Sandbox read denials with a leading `**` don't work on Linux:
   `Read(//**/.env)` and `Read(//**/secrets.d/**)` in
