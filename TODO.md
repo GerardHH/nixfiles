@@ -20,15 +20,8 @@ Delete an item when it's done; git history keeps it.
   diagnostics instead of grep. Claude Code already has an `LSP` tool (fed by
   plugins); check what it needs to use our servers, and whether Copilot CLI has
   the same or can get it through MCP. Ties in with "Copilot CLI in the
-  container" in Now. Claude Code's lua_ls runs without nvim's settings (no
-  `$VIMRUNTIME`, busted or luassert types), so its diagnostics after an edit
-  flag `vim` as undefined in every file and bury the real warnings; a
-  `.luarc.json` per Lua project, or the settings from `lsp.lua`, would fix it.
-
-- 2026-11-15 · A `PostToolUse` hook on Edit/Write in
-  `config/claude/settings.json` that runs the file's formatter and analyzers
-  and hands the warnings back to the agent, so linting doesn't depend on a
-  CLAUDE.md rule being followed. Copilot CLI: check whether it has hooks.
+  container" in Now. Its lua_ls lacks nvim's settings: see "Agents run
+  formatters and analyzers" in Now.
 
 - 2026-11-14 · Sandbox read denials with a leading `**` don't work on Linux:
   `Read(//**/.env)` and `Read(//**/secrets.d/**)` in
@@ -38,6 +31,35 @@ Delete an item when it's done; git history keeps it.
   paths matter.
 
 ## Now
+
+### 2026-11-15 · Agents run formatters and analyzers
+
+Claude ran stylua and rumdl on the agent-review specs, but no Lua analyzer;
+lua-language-server's check then found 10 real warnings (fixed). Make linting
+something the agent can't skip:
+
+- Rule: the proposal in `/tmp/claude-1000/nixfiles/config/claude/CLAUDE.md`
+  replaces the Markdown linter rule with one for every formatter and
+  analyzer (`claude-diff`, `claude-take`). Later in the shared `AGENTS.md`,
+  for Copilot too.
+- Hook: a `PostToolUse` hook on Edit/Write in `config/claude/settings.json`
+  that runs the file's formatter and analyzers and hands the warnings back
+  to the agent, so it doesn't depend on the rule. Per language: stylua and
+  `lua-language-server --check` (Lua), rumdl (Markdown), shellcheck and shfmt,
+  nixfmt, clang-format and clang-tidy. Copilot CLI: check whether it has
+  hooks.
+- One command per project, e.g. `make lint` in agent-review and
+  neotest-testmate, for the rule and the hook to find.
+- lua-language-server's check outside nvim needs the settings nvim's `lua_ls`
+  gets (`config/nvim/lua/plugins/lsp.lua`): LuaJIT, and as library
+  `$VIMRUNTIME`, `${3rd}/luv`, `${3rd}/busted`, `${3rd}/luassert`. A
+  `.luarc.json` per Lua project would carry them for the CLI, nvim and
+  Claude Code alike (check how to name `$VIMRUNTIME` there; its store path
+  changes with each nvim).
+- Claude Code's own lua_ls (its diagnostics after an edit) runs without
+  those settings, so it flags `vim` as undefined in every file and buries the
+  real warnings. The `.luarc.json` may fix that; see also the language
+  servers item in Inbox.
 
 ### 2026-11-15 · How I take in changes from Claude and Copilot
 
@@ -74,6 +96,14 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   the agent answers through a CLI.
 - Taken in; the sandbox writes in the project and not elsewhere in home
   (tested). Left: real rounds with `<leader>ar`, to see how it works out.
+- Previews in trouble (seen 2026-11-15): the first one shows the file
+  without syntax highlighting or gitsigns; from the second on it highlights
+  partly, still not as in an open buffer, which is what I'd like. Maybe
+  trouble, maybe our source: its `preview` hook and `review_buffers` load
+  files into real buffers for the preview
+  (`lua/trouble/sources/agent_review.lua`). Check whether a file loaded only
+  for the preview gets its `filetype`, treesitter and gitsigns (they attach
+  on `BufReadPost`/`FileType`), and how trouble's own modes preview.
 - Stale note lines: after I reset or edit a hunk, the notes' line numbers
   still point at the old lines until the agent's next turn (seen: a 3-line
   comment reset, every later note 3 lines off). Staging doesn't cause it (it
