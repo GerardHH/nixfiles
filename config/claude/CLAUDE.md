@@ -7,7 +7,7 @@
   `diff`, `log`, `show`) is fine.
 - After a turn that changed files in a git repository, rewrite
   `.agent-notes.md` at its root so it describes what's still unstaged, not
-  a history. `<leader>qg` in nvim lists the changes with these notes in
+  a history. `<leader>ar` in nvim lists the changes with these notes in
   trouble.nvim. The shape:
 
   ```markdown

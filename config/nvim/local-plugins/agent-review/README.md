@@ -69,8 +69,8 @@ lazy.nvim, as a local plugin; trouble.nvim is optional:
     dir = vim.fn.stdpath("config") .. "/local-plugins/agent-review",
     name = "agent-review",
     keys = {
-        { "<leader>qg", "<CMD>Trouble agent_review toggle<CR>", desc = "Agent review" },
-        { "<leader>qs", function() require("agent_review").toggle_review_layout() end },
+        { "<leader>ar", "<CMD>Trouble agent_review toggle<CR>", desc = "Agent review" },
+        { "<leader>as", function() require("agent_review").toggle_review_layout() end },
     },
 }
 ```

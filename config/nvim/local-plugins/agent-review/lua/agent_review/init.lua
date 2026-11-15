@@ -314,7 +314,7 @@ function M.warn_unmatched(changes)
 end
 
 -- Fills the quickfix list with the unstaged changes, as a new list so
--- `:colder` still reaches the one before, and opens it. `<leader>qg` shows
+-- `:colder` still reaches the one before, and opens it. `<leader>ar` shows
 -- them in trouble.nvim instead now; this stays for `:cdo` and the like.
 function M.to_quickfix()
     local changes, collect_error = M.collect()

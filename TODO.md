@@ -47,11 +47,11 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   (Linux sandbox paths take no wildcard but a trailing `/**`); revisit with
   the harness choice below.
 - agent-review, a local plugin (`config/nvim/local-plugins/agent-review`,
-  spec and keys in `config/nvim/lua/plugins/agent-review.lua`): `<leader>qg`
+  spec and keys in `config/nvim/lua/plugins/agent-review.lua`): `<leader>ar`
   lists the unstaged hunks and untracked files with the agent's notes from
   `.agent-notes.md` (ignored in the global `config/git/ignore`) in
   trouble.nvim, and shows the changes in the files inline or side by side
-  (`<leader>qs`). What it does, the notes format and its known issue (the
+  (`<leader>as`). What it does, the notes format and its known issue (the
   preview overlaps right after toggling to side by side) are in its
   `README.md`. The keys load the plugin before trouble looks for its source,
   so they stay in its own spec, not trouble's. The name is taken on GitHub
@@ -65,7 +65,7 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   quickfix); an idea worth taking is code-review.nvim's comment threads that
   the agent answers through a CLI.
 - Taken in; the sandbox writes in the project and not elsewhere in home
-  (tested). Left: real rounds with `<leader>qg`, to see how it works out.
+  (tested). Left: real rounds with `<leader>ar`, to see how it works out.
 - Stale note lines: after I reset or edit a hunk, the notes' line numbers
   still point at the old lines until the agent's next turn (seen: a 3-line
   comment reset, every later note 3 lines off). Fix in agent-review
@@ -120,7 +120,7 @@ accepted.
   `:diffget`/`:diffput` also take single lines. Pick it together with the
   forge reviews item in Next, so one diff view serves both.
 - Also to compare: codediff.nvim (VSCode-style diff with a list of changed
-  files; check). Its list of changed files is covered by `<leader>qg` in
+  files; check). Its list of changed files is covered by `<leader>ar` in
   trouble now, which leaves codediff.nvim only its diff rendering.
 - Jump between hunks: `]c`/`[c` (gitsigns' `nav_hunk`, nvim's own `]c` in a
   diff window) beside `<leader>ghn`/`<leader>ghp`
@@ -558,8 +558,8 @@ the container" (sops through `nixfiles-secrets`), plus `gh`/`glab auth`.
 
 Decided: trouble everywhere a list is to work through. It's installed
 (`config/nvim/lua/plugins/trouble.lua`) and shows the agent's changes
-(`<leader>qg`); next are the LSP results (references first), then
-diagnostics. What's below was the comparison; trim it as the lists move.
+(`<leader>ar`); next are the LSP results (references first), then diagnostics.
+What's below was the comparison; trim it as the lists move.
 
 Where the result is a list to work through (references, diagnostics, grep
 hits), show it as a list that stays open, and keep fzf-lua for picking one

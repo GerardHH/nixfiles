@@ -18,6 +18,7 @@ return {
                 mode = { "n", "o", "v", "x" },
                 expand = function() return require("which-key.extras").expand.win() end,
             },
+            { "<leader>a", group = "Agent", mode = { "n", "o", "v", "x" } },
             {
                 "<leader>b",
                 group = "Buffer",
