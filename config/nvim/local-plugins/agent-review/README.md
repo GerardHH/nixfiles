@@ -79,6 +79,37 @@ The keys load this plugin before trouble opens the mode: trouble looks for
 sources (`lua/trouble/sources/agent_review.lua`) only in plugins already
 loaded.
 
+## Tip: reload files the agent changed
+
+The agent writes the files on disk while they're open in nvim. nvim's
+`autoread` is on by default, but only acts when nvim checks the files, which
+it does on its own only around shell commands. So an open buffer keeps
+showing the old text until `:e`. Make nvim check on coming back to it, on
+switching buffers and after a moment idle:
+
+```lua
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
+    callback = function()
+        -- `:checktime` isn't allowed in the command-line window (E11).
+        if vim.fn.getcmdwintype() == "" then vim.cmd.checktime() end
+    end,
+})
+
+-- The reload is silent; say which file it was.
+vim.api.nvim_create_autocmd("FileChangedShellPost", {
+    callback = function(event) vim.notify("Reloaded " .. vim.fn.fnamemodify(event.file, ":~:.")) end,
+})
+```
+
+- Buffers with unsaved edits aren't reloaded: nvim asks which version to
+  keep.
+- Inside tmux, nvim only gets `FocusGained` with `set -g focus-events on`
+  in `tmux.conf` (off by default). The trouble list refreshes on
+  `FocusGained` too.
+- `CursorHold` fires once per idle spell, so a change that lands while
+  you're idle in nvim shows on your next key. For changes as they land, a
+  `vim.uv.new_fs_event` watcher on the open files' directories would do it.
+
 ## Known issues
 
 - **Preview overlaps after toggling to side by side.** With trouble's
@@ -95,5 +126,3 @@ loaded.
 - **Note line numbers go stale** when you reset or edit part of a hunk:
   the notes still point at the old lines until the agent's next turn
   rewrites them, so notes below the edit land on the wrong change or none.
-- **Changes on disk** show up in an open buffer only after `:e` or
-  `:checktime`.
