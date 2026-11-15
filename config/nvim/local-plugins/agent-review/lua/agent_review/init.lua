@@ -631,4 +631,64 @@ function M.toggle_review_layout()
     vim.notify("Agent review: " .. new_layout:gsub("_", " "))
 end
 
+-- Watching the notes file: the agent rewrites it at the end of every turn,
+-- so a change to it means a round is done and the list is worth refreshing,
+-- even while I stay in nvim and nothing else fires (no focus change, and
+-- gitsigns sees only loaded buffers). Watching every file the agent writes
+-- instead would refresh mid-turn, with hunks whose notes aren't written yet.
+local notes_watch = { handle = nil, timer = nil, repository_root = nil }
+
+-- How long to wait after the last change before acting: one rewrite can
+-- fire several events (truncate, write, rename).
+local notes_debounce_ms = 200
+
+-- Starts watching the notes file in `repository_root`, or moves the watch
+-- there. On a change it reloads open buffers the agent changed
+-- (`:checktime`) and fires `User AgentReviewNotesChanged`, which the trouble
+-- mode refreshes on. Watches the directory rather than the file: an editor
+-- or tool that writes a new file and renames it over the old one would end a
+-- watch on the file itself. libuv watches don't recurse, so this only sees
+-- the repository root's own entries; the callback filters for the notes.
+function M.watch_notes(repository_root)
+    if notes_watch.handle and notes_watch.repository_root == repository_root then return end
+    M.unwatch_notes()
+    local watch_handle = vim.uv.new_fs_event()
+    local debounce_timer = vim.uv.new_timer()
+    if not watch_handle or not debounce_timer then return end
+    local watch_ok = watch_handle:start(repository_root, {}, function(watch_error, changed_name)
+        if watch_error or changed_name ~= M.notes_file then return end
+        -- Restarting the timer on each event acts once the burst is over;
+        -- the work goes to the main loop, as libuv callbacks may not call
+        -- most of the nvim API.
+        debounce_timer:stop()
+        debounce_timer:start(
+            notes_debounce_ms,
+            0,
+            vim.schedule_wrap(function()
+                if vim.fn.getcmdwintype() == "" then vim.cmd.checktime() end
+                vim.api.nvim_exec_autocmds("User", { pattern = "AgentReviewNotesChanged" })
+            end)
+        )
+    end)
+    if not watch_ok then
+        watch_handle:close()
+        debounce_timer:close()
+        return
+    end
+    notes_watch.handle, notes_watch.timer, notes_watch.repository_root = watch_handle, debounce_timer, repository_root
+end
+
+-- Stops the watch, if any.
+function M.unwatch_notes()
+    if notes_watch.handle then
+        notes_watch.handle:stop()
+        notes_watch.handle:close()
+    end
+    if notes_watch.timer then
+        notes_watch.timer:stop()
+        notes_watch.timer:close()
+    end
+    notes_watch.handle, notes_watch.timer, notes_watch.repository_root = nil, nil, nil
+end
+
 return M

@@ -78,10 +78,9 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
 - Live reload: `:checktime` on `FocusGained`, `BufEnter` and `CursorHold`
   in `config/nvim/lua/autocommands.lua`, with a notice per reloaded file;
   `focus-events on` in `config/tmux/tmux.conf` (needs a `source-file` or a
-  new tmux server). Tested headless. Left: try it in a real round. If
-  changes that land while I sit idle in nvim still need a keypress
-  (`CursorHold` fires once per idle spell), add a `vim.uv` fs watcher on
-  the loaded buffers' directories.
+  new tmux server). While `<leader>ar` is open, agent-review also watches
+  `.agent-notes.md` and on a change reloads buffers and refreshes the list
+  (`watch_notes`). Tested headless. Left: try both in a real round.
 - Inside the sandbox, `git status` lists the protected names that don't
   exist in the project (`.bashrc`, `.gitconfig`, `.vscode`,
   `.claude/settings.json`, …) as untracked: bwrap's mount points, visible

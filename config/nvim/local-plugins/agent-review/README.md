@@ -8,13 +8,15 @@ Code, Copilot CLI, …) as long as it writes a notes file.
 
 ## What it shows
 
-- **The list**: one entry per unstaged hunk and per untracked file, each
-  with the agent's note for it. In trouble.nvim (`:Trouble agent_review`)
-  grouped "This round" and "Earlier rounds", then per file, with the line
-  range in front and the note after it. It refreshes on save, on focus and
-  when gitsigns stages or resets a hunk (`r` by hand), and follows the
-  change under the cursor in the file. Without trouble, the same entries go
-  to the quickfix list (`require("agent_review").to_quickfix()`).
+- **The list**: one entry per unstaged hunk and per untracked file, each with
+  the agent's note for it. In trouble.nvim (`:Trouble agent_review`) grouped
+  "This round" and "Earlier rounds", then per file, with the line range in front
+  and the note after it. It refreshes on save, on focus, when gitsigns stages or
+  resets a hunk, and when the agent rewrites the notes file at the end of its
+  turn (`r` by hand), and follows the change under the cursor in the file. The
+  notes file is watched only while the list is open; on a change, open buffers
+  are reloaded too (`:checktime`). Without trouble, the same entries go to the
+  quickfix list (`require("agent_review").to_quickfix()`).
 - **The changes in the files**, while the trouble list is open, in one of two
   layouts:
   - *inline*: removed lines as virtual lines where they were (`DiffDelete`),
@@ -110,8 +112,8 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
   in `tmux.conf` (off by default). The trouble list refreshes on
   `FocusGained` too.
 - `CursorHold` fires once per idle spell, so a change that lands while
-  you're idle in nvim shows on your next key. For changes as they land, a
-  `vim.uv.new_fs_event` watcher on the open files' directories would do it.
+  you're idle in nvim shows on your next key. While the trouble list is
+  open, its notes watch reloads them at the end of the agent's turn anyway.
 
 ## Known issues
 

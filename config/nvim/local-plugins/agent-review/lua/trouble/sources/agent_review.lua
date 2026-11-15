@@ -30,11 +30,15 @@ M.config = {
             -- Refresh on what changes the diff or the notes: a save, gitsigns
             -- staging or resetting a hunk (it fires GitSignsUpdate after each
             -- change to its signs), and coming back from the terminal where
-            -- the agent ran. `r` refreshes by hand.
+            -- the agent ran. Also when the agent rewrites its notes at the
+            -- end of a turn (agent_review.watch_notes, while the list is
+            -- open), so a finished round shows without leaving nvim. `r`
+            -- refreshes by hand.
             events = {
                 "BufWritePost",
                 "FocusGained",
                 { event = "User", pattern = "GitSignsUpdate" },
+                { event = "User", pattern = "AgentReviewNotesChanged" },
             },
             -- This round's changes and the earlier ones apart, each grouped by
             -- file: what I haven't seen comes first.
@@ -126,6 +130,8 @@ local function stop_review_buffers()
     review_buffers.active = false
     vim.api.nvim_create_augroup("agent_review_trouble_buffers", { clear = true })
     release_preview_buffers(nil)
+    -- The notes watch only serves the open list.
+    require("agent_review").unwatch_notes()
 end
 
 -- Called once, when trouble registers the source. The review display
@@ -176,6 +182,10 @@ function M.get(items_callback)
         return
     end
     if not review_buffers.active then start_review_buffers() end
+    -- Refresh when the agent rewrites its notes. Called on every refresh;
+    -- it does nothing while it already watches this repository, and moves
+    -- the watch when nvim's directory moved to another one.
+    agent_review.watch_notes(changes.repository_root)
     -- Show the changes in the files, redrawn from this refresh's diff.
     agent_review.review_update(changes)
     local change_items = {}
