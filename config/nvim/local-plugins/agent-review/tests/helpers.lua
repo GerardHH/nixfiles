@@ -5,6 +5,7 @@
 -- was written last, a file or the notes file, and setting the times keeps
 -- the specs fast and independent of the file system's time resolution.
 local helpers = {}
+local stub = require("luassert.stub")
 
 -- Seconds since the epoch the specs count from; any fixed past time works.
 helpers.base_time = 1700000000
@@ -99,6 +100,21 @@ function helpers.entries_of(changes, relative_path)
     end
     table.sort(path_entries, function(left_entry, right_entry) return left_entry.lnum < right_entry.lnum end)
     return path_entries
+end
+
+-- Replaces vim.notify until the returned stub's `revert()`, collecting
+-- the messages, so specs can check warnings without them landing in the
+-- output. A luassert stub rather than an assignment: it keeps the original
+-- to put back, and lua-language-server doesn't take it for a second
+-- definition of vim.notify (duplicate-set-field).
+function helpers.capture_notify()
+    local notify_messages = {}
+    local notify_stub = stub(vim, "notify")
+    -- `invokes` is in the luassert that plenary ships, not in
+    -- lua-language-server's luassert types.
+    ---@diagnostic disable-next-line: undefined-field
+    notify_stub.invokes(function(message) table.insert(notify_messages, message) end)
+    return notify_messages, notify_stub
 end
 
 return helpers

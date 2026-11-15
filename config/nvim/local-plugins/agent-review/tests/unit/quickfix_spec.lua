@@ -22,16 +22,14 @@ local function make_repository_with_notes()
 end
 
 describe("to_quickfix", function()
-    local original_notify = vim.notify
-    local notify_messages
+    local notify_messages, notify_stub
 
     before_each(function()
-        notify_messages = {}
-        vim.notify = function(message) table.insert(notify_messages, message) end
+        notify_messages, notify_stub = helpers.capture_notify()
     end)
 
     after_each(function()
-        vim.notify = original_notify
+        notify_stub:revert()
         vim.cmd("cclose")
         vim.cmd("silent! %bwipeout!")
     end)

@@ -441,6 +441,9 @@ end
 function M.to_quickfix()
     local changes, collect_error = M.collect()
     if not changes then
+        -- collect gives an error whenever it gives no changes;
+        -- lua-language-server can't tell from the check on `changes`.
+        ---@cast collect_error string
         vim.notify(collect_error, vim.log.levels.ERROR)
         return
     end

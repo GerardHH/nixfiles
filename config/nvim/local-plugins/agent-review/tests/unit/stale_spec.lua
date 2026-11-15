@@ -197,15 +197,13 @@ end)
 
 describe("warn_stale", function()
     local agent_review = require("agent_review")
-    local original_notify = vim.notify
-    local notify_messages
+    local notify_messages, notify_stub
 
     before_each(function()
-        notify_messages = {}
-        vim.notify = function(message) table.insert(notify_messages, message) end
+        notify_messages, notify_stub = helpers.capture_notify()
     end)
 
-    after_each(function() vim.notify = original_notify end)
+    after_each(function() notify_stub:revert() end)
 
     it("warns once per set of stale files", function()
         agent_review.warn_stale({ stale_paths = {} })

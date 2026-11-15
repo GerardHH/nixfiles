@@ -48,6 +48,10 @@ local function server_overrides()
                             vim.env.VIMRUNTIME,
                             "${3rd}/luv/library",
                             "${3rd}/busted/library",
+                            -- busted's types leave out its assertions
+                            -- (`assert.are`, `assert.is_true`, stubs), which
+                            -- come from luassert.
+                            "${3rd}/luassert/library",
                         },
                     },
                 },

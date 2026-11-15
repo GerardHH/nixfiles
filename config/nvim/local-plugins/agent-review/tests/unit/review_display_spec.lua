@@ -21,7 +21,9 @@ local function marks_of(buffer_number)
     local mark_summaries = {}
     local buffer_marks = vim.api.nvim_buf_get_extmarks(buffer_number, diff_marks_namespace, 0, -1, { details = true })
     for _, buffer_mark in ipairs(buffer_marks) do
-        local mark_row, mark_details = buffer_mark[2] + 1, buffer_mark[4]
+        -- `details = true` always fills the fourth field; the assert tells
+        -- lua-language-server so (need-check-nil).
+        local mark_row, mark_details = buffer_mark[2] + 1, assert(buffer_mark[4])
         if mark_details.line_hl_group then
             table.insert(mark_summaries, { mark_row, "line", mark_details.line_hl_group })
         end
@@ -39,16 +41,17 @@ local function marks_of(buffer_number)
 end
 
 describe("review display", function()
-    local original_notify = vim.notify
+    local notify_stub
 
     before_each(function()
-        vim.notify = function() end
+        -- The layout toggle notifies; keep it out of the output.
+        notify_stub = select(2, helpers.capture_notify())
         vim.g.agent_review_layout = nil
     end)
 
     after_each(function()
         agent_review.review_stop()
-        vim.notify = original_notify
+        notify_stub:revert()
         vim.g.agent_review_layout = nil
         vim.cmd("silent! only")
         vim.cmd("silent! %bwipeout!")

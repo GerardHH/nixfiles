@@ -184,6 +184,9 @@ function M.get(items_callback)
     local agent_review = require("agent_review")
     local changes, collect_error = agent_review.collect()
     if not changes then
+        -- collect gives an error whenever it gives no changes;
+        -- lua-language-server can't tell from the check on `changes`.
+        ---@cast collect_error string
         vim.notify(collect_error, vim.log.levels.ERROR)
         items_callback({})
         return
