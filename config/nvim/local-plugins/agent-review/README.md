@@ -52,6 +52,9 @@ Free text: what the change as a whole does, and what this round changed.
 - A `## path` heading names a file, from the repository root; the items
   under it give lines in the working tree: one line or `first-last`, in
   backticks or not. Several locations, separated by commas, share one note.
+- An item may wrap over several lines, as a Markdown formatter rewraps it:
+  indented lines below an item continue it, up to the next item, heading,
+  blank line or unindented line.
 - The separator before the note may be an em or en dash, a hyphen or a
   colon.
 - `· new` at the end marks a change from this round: it's listed under
@@ -81,11 +84,11 @@ loaded.
 
 ## Tip: reload files the agent changed
 
-The agent writes the files on disk while they're open in nvim. nvim's
-`autoread` is on by default, but only acts when nvim checks the files, which
-it does on its own only around shell commands. So an open buffer keeps
-showing the old text until `:e`. Make nvim check on coming back to it, on
-switching buffers and after a moment idle:
+The agent writes the files on disk while they're open in nvim. nvim's `autoread`
+is on by default, but only acts when nvim checks the files, which it does on its
+own only around shell commands. So an open buffer keeps showing the old text
+until `:e`. Make nvim check on coming back to it, on switching buffers and after
+a moment idle:
 
 ```lua
 vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {

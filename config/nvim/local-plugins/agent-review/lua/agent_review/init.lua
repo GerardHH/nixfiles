@@ -188,44 +188,65 @@ local function read_notes(repository_root)
     local notes_by_path, notes_title, heading_path = {}, nil, nil
     local notes_handle = io.open(repository_root .. "/" .. M.notes_file, "r")
     if not notes_handle then return notes_by_path, nil end
+
+    -- A list item may wrap over several lines, as markdown formatters (rumdl
+    -- here) rewrap long items at 80 columns. Reading line by line cut every
+    -- note off at its first line end, so the item's lines are collected
+    -- first and parsed as one text once the item ends.
+    local item_text_parts, item_heading_path = nil, nil
+
+    -- Parses the collected item, if any: it starts with its locations, and
+    -- the same text becomes the note of each.
+    local function finish_item()
+        if not item_text_parts then return end
+        local item_text = table.concat(item_text_parts, " ")
+        item_text_parts = nil
+        local note_locations, note_text = parse_note_locations(item_text, item_heading_path)
+        if #note_locations == 0 then return end
+        -- Drop the separator before the why: a colon, an em or en dash, or
+        -- a hyphen.
+        note_text = vim.trim(note_text):gsub("^:%s*", ""):gsub("^—%s*", ""):gsub("^–%s*", ""):gsub("^%-%s*", "")
+        -- "· new" at the end marks a change from this round. It's dropped
+        -- from the text: the list shows it by grouping.
+        local text_without_mark = note_text:gsub("%s*·%s*new%s*$", "")
+        for _, note_location in ipairs(note_locations) do
+            notes_by_path[note_location.path] = notes_by_path[note_location.path] or {}
+            table.insert(notes_by_path[note_location.path], {
+                lnum = note_location.first_line,
+                end_lnum = note_location.last_line,
+                text = text_without_mark,
+                new = text_without_mark ~= note_text,
+                used = false,
+            })
+        end
+    end
+
     for notes_line in notes_handle:lines() do
         local file_heading = notes_line:match("^##%s+(.-)%s*$")
         -- The first `#` heading is the title; `##` doesn't match `^#%s`.
         local title_heading = notes_line:match("^#%s+(.-)%s*$")
+        -- A list item: `-`, `*` or `+`, indented or not.
+        local item_start_text = notes_line:match("^%s*[-*+]%s+(.*)$")
+        -- An indented line that isn't an item continues the item above it.
+        local continuation_text = notes_line:match("^%s+(%S.*)$")
         if file_heading then
+            finish_item()
             -- Backticks around the path are optional.
             heading_path = file_heading:gsub("^`(.*)`$", "%1")
         elseif title_heading then
+            finish_item()
             notes_title = notes_title or title_heading
+        elseif item_start_text then
+            finish_item()
+            item_text_parts, item_heading_path = { item_start_text }, heading_path
+        elseif continuation_text and item_text_parts then
+            table.insert(item_text_parts, vim.trim(continuation_text))
         else
-            -- A list item (`-`, `*` or `+`) that starts with its locations;
-            -- the same text becomes the note of each.
-            local item_text = notes_line:match("^%s*[-*+]%s+(.*)$")
-            local note_locations, note_text = {}, ""
-            if item_text then
-                note_locations, note_text = parse_note_locations(item_text, heading_path)
-            end
-            if #note_locations > 0 then
-                -- Drop the separator before the why: a colon, an em or en
-                -- dash, or a hyphen.
-                note_text =
-                    vim.trim(note_text):gsub("^:%s*", ""):gsub("^—%s*", ""):gsub("^–%s*", ""):gsub("^%-%s*", "")
-                -- "· new" at the end marks a change from this round. It's
-                -- dropped from the text: the list shows it by grouping.
-                local text_without_mark = note_text:gsub("%s*·%s*new%s*$", "")
-                for _, note_location in ipairs(note_locations) do
-                    notes_by_path[note_location.path] = notes_by_path[note_location.path] or {}
-                    table.insert(notes_by_path[note_location.path], {
-                        lnum = note_location.first_line,
-                        end_lnum = note_location.last_line,
-                        text = text_without_mark,
-                        new = text_without_mark ~= note_text,
-                        used = false,
-                    })
-                end
-            end
+            -- A blank line or a paragraph ends the item.
+            finish_item()
         end
     end
+    finish_item()
     notes_handle:close()
     return notes_by_path, notes_title
 end
