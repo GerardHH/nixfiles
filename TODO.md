@@ -77,12 +77,13 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
     quickfix, a warning once per set of files. Lining up alone was fooled by
     staging (a note left without its hunk) and by a reset that lands a note
     exactly on another hunk. Specs in `tests/unit` (`make test`).
-  - Next: while fresh, record each note's hunk content (removed and added
-    lines, plus a few context lines), in memory and under `stdpath("state")`,
-    keyed by repo and notes content.
-  - Then: once stale, find each note's hunk by that content, context breaking
-    ties. Its hunk edited (removed lines still match), or a tie left: show
-    the note as outdated (own group in trouble), don't guess. No snapshot:
+  - Parked (2026-11-15) until the detection has been tried in real rounds.
+  - Then, if needed: while fresh, record each note's hunk content (removed
+    and added lines, plus a few context lines), in memory and under
+    `stdpath("state")`, keyed by repo and notes content.
+  - After that: once stale, find each note's hunk by that content, context
+    breaking ties. Its hunk edited (removed lines still match), or a tie left:
+    show the note as outdated (own group in trouble), don't guess. No snapshot:
     line matching plus the stale mark, as now.
   - Specs to add with it: gitsigns-style reset in a buffer, an nvim restart
     (snapshot read back), identical hunks.
@@ -353,6 +354,17 @@ Then:
 - Rewrite the rules in `config/claude/CLAUDE.md` (or the shared `AGENTS.md`)
   to match what we pick.
 
+### 2026-11-15 · Copilot CLI in the container
+
+Up next (2026-11-15): what we build for agents only pays off at work once
+Copilot CLI runs there, as work code goes to Copilot. Open question: deliver the
+token through `nixfiles-secrets` (sops) so a container rebuild costs nothing.
+Likely shape: a token on the host from sops, passed in by
+`bin/nix-devcontainer.sh` as an environment variable or bind-mounted file, like
+the per-workspace bash history mount there. Which container gets which token,
+and the agent's own container: see the containers part of "How I take in changes
+from Claude and Copilot" in Now.
+
 ## Next
 
 ### 2026-11-14 · nvim wishes
@@ -452,16 +464,6 @@ no `LANG`; the image's glibc has no such locale, and `LOCALE_ARCHIVE_2_27` only
 helps nix programs. Find where `LANG` comes from (image `ENV`, devcontainer.json
 `containerEnv`/`remoteEnv`), then e.g. `--remote-env LANG=C.UTF-8` in
 `bin/nix-devcontainer.sh`.
-
-### 2026-11-05 · Copilot CLI in the container
-
-Needed for work; Claude Code covers it for now. Open question: deliver the token
-through `nixfiles-secrets` (sops) so a container rebuild costs nothing. Likely
-shape: a token on the host from sops, passed in by `bin/nix-devcontainer.sh` as
-an environment variable or bind-mounted file, like the per-workspace bash
-history mount there. Which container gets which token, and the agent's own
-container: see the containers part of "How I take in changes from Claude and
-Copilot" in Now.
 
 ### 2026-10-05 · git-conflict.nvim breaks on nvim 0.12
 
