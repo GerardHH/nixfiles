@@ -48,8 +48,9 @@ M.config = {
             },
             sort = { "new", "filename", "pos" },
             -- Line range first, a fixed-width column, so the notes line up
-            -- and get the rest of the line.
-            format = "{lines} {text}",
+            -- and get the rest of the line. `{stale}` marks a note that may
+            -- belong to another change (agent_review.find_stale_paths).
+            format = "{lines} {stale}{text}",
             -- Notes run long: wrap them at word boundaries instead of cutting
             -- them off, and indent the continuation lines (breakindent) so
             -- the tree stays readable.
@@ -68,6 +69,12 @@ M.config = {
                         lines_text = tostring(change_item.pos[1])
                     end
                     return { text = ("%-9s"):format(lines_text), hl = "TroublePos" }
+                end,
+                -- A warning sign before a note whose file changed since the
+                -- notes and no longer lines up with them; nothing otherwise.
+                stale = function(format_context)
+                    if not format_context.item.stale then return { text = "" } end
+                    return { text = "⚠ ", hl = "DiagnosticWarn" }
                 end,
             },
         },
@@ -188,6 +195,8 @@ function M.get(items_callback)
     agent_review.watch_notes(changes.repository_root)
     -- Show the changes in the files, redrawn from this refresh's diff.
     agent_review.review_update(changes)
+    -- Says once which files' notes may be off; the entries carry the mark.
+    agent_review.warn_stale(changes)
     local change_items = {}
     for _, change_entry in ipairs(changes.entries) do
         local is_whole_file = change_entry.end_lnum == math.huge
@@ -210,6 +219,7 @@ function M.get(items_callback)
                 text = change_entry.text,
                 new = change_entry.new or false,
                 round = change_entry.new and this_round_label or earlier_label,
+                stale = change_entry.stale or false,
                 whole_file = is_whole_file,
             })
         )

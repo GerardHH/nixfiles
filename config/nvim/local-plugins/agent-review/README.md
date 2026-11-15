@@ -64,6 +64,24 @@ Free text: what the change as a whole does, and what this round changed.
 - A note becomes the text of each entry whose hunk it overlaps; an entry
   without one shows its first added line (or `removed: …`). Notes that
   match no unstaged change are counted in a warning.
+- Write the notes last in the agent's turn, with the lines exactly as
+  `git diff --unified=0` gives them: that's how stale notes are told apart
+  (see below).
+
+## Stale notes
+
+The notes give lines as they were when the agent wrote them. Resetting or
+editing a hunk afterwards moves the lines below it, so notes there point at the
+wrong change until the agent's next turn rewrites them. Staging doesn't: it
+changes the index, not the working tree.
+
+A file's notes count as stale when the file was written after the notes file and
+its hunks no longer pair up one to one with its note locations. Both checks are
+needed: a save that changes nothing passes the second, and a staged hunk (its
+note left without a hunk) never fails the first. Notes in a stale file are
+marked `⚠` in the trouble list (`[stale?]` in quickfix), and a warning names the
+files, once per set. They still land by line number: moving them onto their own
+hunks again is in "Not yet".
 
 ## Setup
 
@@ -128,6 +146,18 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
 
 ## Not yet
 
-- **Note line numbers go stale** when you reset or edit part of a hunk:
-  the notes still point at the old lines until the agent's next turn
-  rewrites them, so notes below the edit land on the wrong change or none.
+- **Stale notes stay on the wrong change**, marked (see "Stale notes"),
+  until the agent's next turn. Planned: while the notes are fresh, record
+  each note's hunk content, and find the hunk by that content once they're
+  stale.
+
+## Tests
+
+Specs in `tests/unit`, run by plenary.nvim's busted in headless nvim. They drive
+`collect` on scratch git repositories made per test (`tests/helpers.lua`), with
+file times set rather than waited for. See the `Makefile` for what runs where:
+
+```sh
+make test                                     # clones plenary.nvim first
+make test DEPS=$HOME/.local/share/nvim/lazy   # or uses lazy.nvim's
+```

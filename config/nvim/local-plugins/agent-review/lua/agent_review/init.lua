@@ -212,8 +212,10 @@ local function read_notes(repository_root)
         for _, note_location in ipairs(note_locations) do
             notes_by_path[note_location.path] = notes_by_path[note_location.path] or {}
             table.insert(notes_by_path[note_location.path], {
-                lnum = note_location.first_line,
-                end_lnum = note_location.last_line,
+                -- git counts a hunk that only removes lines at the top of a
+                -- file as line 0 (`+0,0`); its entry starts at line 1.
+                lnum = math.max(note_location.first_line, 1),
+                end_lnum = math.max(note_location.last_line, 1),
                 text = text_without_mark,
                 new = text_without_mark ~= note_text,
                 used = false,
@@ -251,6 +253,72 @@ local function read_notes(repository_root)
     return notes_by_path, notes_title
 end
 
+-- Stale notes: the notes give working-tree lines as they were when the agent
+-- wrote them, last thing in its turn. Resetting or editing a hunk afterwards
+-- moves the lines below it, and the notes then point at the wrong change.
+-- Staging doesn't: it changes the index, not the working tree. So a file's
+-- notes may be stale only once the file was written after the notes file
+-- (`is_written_after`), and then they are unless they still line up with
+-- the file's hunks one to one (`notes_line_up`), as after a save that changed
+-- nothing. Either check alone falls short: lining up by itself misreads a
+-- staged hunk (its note is left without a hunk) and can be fooled when a
+-- shift happens to land a note on another hunk's exact lines; the write time
+-- by itself flags every save.
+
+-- Whether the file at `file_path` was last written after `notes_mtime` (a
+-- uv stat time, { sec, nsec }). A file that's gone (deleted) counts as not
+-- written: there are no lines left to move.
+local function is_written_after(file_path, notes_mtime)
+    local file_stat = vim.uv.fs_stat(file_path)
+    if not file_stat then return false end
+    if file_stat.mtime.sec ~= notes_mtime.sec then return file_stat.mtime.sec > notes_mtime.sec end
+    return file_stat.mtime.nsec > notes_mtime.nsec
+end
+
+-- Whether a file's notes and its change entries pair up one to one, each
+-- note location on exactly one entry's lines, as git gave them when the
+-- notes were written. A new file is one entry from line 1 to math.huge,
+-- noted as `1`.
+local function notes_line_up(path_notes, path_entries)
+    if #path_notes ~= #path_entries then return false end
+    local paired_entries = {}
+    for _, note in ipairs(path_notes) do
+        local paired = false
+        for entry_index, change_entry in ipairs(path_entries) do
+            local same_lines = change_entry.lnum == note.lnum
+                and (change_entry.end_lnum == note.end_lnum or change_entry.end_lnum == math.huge)
+            if same_lines and not paired_entries[entry_index] then
+                paired_entries[entry_index], paired = true, true
+                break
+            end
+        end
+        if not paired then return false end
+    end
+    return true
+end
+
+-- The paths, relative to the repository root, whose notes may be stale; see
+-- above. A set: path → true.
+local function find_stale_paths(repository_root, notes_by_path, change_entries)
+    local stale_paths = {}
+    local notes_stat = vim.uv.fs_stat(repository_root .. "/" .. M.notes_file)
+    if not notes_stat then return stale_paths end
+    local entries_by_path = {}
+    for _, change_entry in ipairs(change_entries) do
+        entries_by_path[change_entry.path] = entries_by_path[change_entry.path] or {}
+        table.insert(entries_by_path[change_entry.path], change_entry)
+    end
+    for notes_path, path_notes in pairs(notes_by_path) do
+        if
+            is_written_after(repository_root .. "/" .. notes_path, notes_stat.mtime)
+            and not notes_line_up(path_notes, entries_by_path[notes_path] or {})
+        then
+            stale_paths[notes_path] = true
+        end
+    end
+    return stale_paths
+end
+
 -- Collects the unstaged changes with their notes, for both front ends: the
 -- quickfix list below and the trouble.nvim source in
 -- `lua/trouble/sources/agent_review.lua`. Returns nil and an error message
@@ -263,7 +331,12 @@ end
 --                    carry new_start, added_count and removed_lines (git's
 --                    view of the hunk), for the diff marks
 --   unmatched_count  notes that match no unstaged change
--- Entry texts carry no "[new]" mark: each front end shows `new` its own way.
+--   stale_paths      sorted paths whose notes may be stale: written after
+--                    the notes, with lines that no longer line up with them
+--                    (see find_stale_paths); entries there that show a note
+--                    carry `stale = true`
+-- Entry texts carry no "[new]" or stale mark: each front end shows `new` and
+-- `stale` its own way.
 function M.collect()
     local repository_root, root_error = find_repository_root()
     if not repository_root then return nil, "Not in a git repository: " .. root_error end
@@ -289,6 +362,9 @@ function M.collect()
     -- hunk are joined. A note matching no hunk is about a change that's been
     -- staged or reset since, or one whose lines moved, and is left out.
     local notes_by_path, notes_title = read_notes(repository_root)
+    -- Checked before matching: matching marks notes as used, and the check
+    -- only needs the notes' own lines.
+    local stale_paths = find_stale_paths(repository_root, notes_by_path, change_entries)
     for _, change_entry in ipairs(change_entries) do
         local matching_texts = {}
         for _, note in ipairs(notes_by_path[change_entry.path] or {}) do
@@ -298,7 +374,11 @@ function M.collect()
                 change_entry.new = change_entry.new or note.new
             end
         end
-        if #matching_texts > 0 then change_entry.text = table.concat(matching_texts, "; ") end
+        if #matching_texts > 0 then
+            change_entry.text = table.concat(matching_texts, "; ")
+            -- Only an entry showing a note can show the wrong one.
+            change_entry.stale = stale_paths[change_entry.path] or nil
+        end
     end
 
     -- This round's changes first, so a new round starts with what I haven't
@@ -315,12 +395,33 @@ function M.collect()
             if not note.used then unmatched_count = unmatched_count + 1 end
         end
     end
+    local sorted_stale_paths = vim.tbl_keys(stale_paths)
+    table.sort(sorted_stale_paths)
     return {
         repository_root = repository_root,
         title = notes_title,
         entries = change_entries,
         unmatched_count = unmatched_count,
+        stale_paths = sorted_stale_paths,
     }
+end
+
+-- The stale paths warned about last, joined, so a list that refreshes on
+-- every save or gitsigns update warns once per new set, not on each refresh.
+local last_stale_warning = nil
+
+-- Warns, once per set of files, that the notes of some files may point at
+-- the wrong changes until the agent's next turn rewrites them. Shared by both
+-- front ends.
+function M.warn_stale(changes)
+    local stale_warning = table.concat(changes.stale_paths, ", ")
+    if stale_warning == last_stale_warning then return end
+    last_stale_warning = stale_warning
+    if #changes.stale_paths == 0 then return end
+    vim.notify(
+        ("Notes may be out of date, changed since %s was written: %s"):format(M.notes_file, stale_warning),
+        vim.log.levels.WARN
+    )
 end
 
 -- Warns about notes that match no unstaged change: staged or reset since, or
@@ -358,8 +459,11 @@ function M.to_quickfix()
             -- Only for a hunk with real lines; quickfix shows it as a range.
             end_lnum = change_entry.end_lnum ~= math.huge and change_entry.end_lnum or nil,
             -- Quickfix has no other way to show this round's changes than the
-            -- sort, so mark them in the text.
-            text = (change_entry.new and "[new] " or "") .. change_entry.text,
+            -- sort, so mark them in the text; the same for a note that may
+            -- belong to another change.
+            text = (change_entry.new and "[new] " or "")
+                .. (change_entry.stale and "[stale?] " or "")
+                .. change_entry.text,
             -- Lets the cursor sync treat a new file as one change.
             user_data = change_entry.end_lnum == math.huge and { whole_file = true } or nil,
         })
@@ -376,6 +480,7 @@ function M.to_quickfix()
         desc = "Make the agent change under the cursor the current quickfix entry",
     })
     M.warn_unmatched(changes)
+    M.warn_stale(changes)
     vim.cmd("copen")
 end
 

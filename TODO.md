@@ -68,13 +68,34 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   (tested). Left: real rounds with `<leader>ar`, to see how it works out.
 - Stale note lines: after I reset or edit a hunk, the notes' line numbers
   still point at the old lines until the agent's next turn (seen: a 3-line
-  comment reset, every later note 3 lines off). Fix in agent-review
-  (`read_notes`): shift each note by the lines added or removed above
-  it since the notes were written. That needs the diff at writing time to
-  compare with, e.g. the agent puts each hunk's `@@` header (old-side range,
-  which my edits don't move) next to the line range, and the plugin maps old
-  ranges onto the live `git diff --unified=0`. Simpler fallback: snap each
-  note to the nearest live hunk, and drop notes with no hunk left.
+  comment reset, every later note 3 lines off). Staging doesn't cause it (it
+  leaves the working tree's lines alone); resets and edits do. All in the
+  plugin, no change to the notes format:
+  - Done: detection (`find_stale_paths`). A file's notes are stale when the
+    file was written after the notes file and its hunks no longer pair up one
+    to one with its note locations; marked `⚠` in trouble, `[stale?]` in
+    quickfix, a warning once per set of files. Lining up alone was fooled by
+    staging (a note left without its hunk) and by a reset that lands a note
+    exactly on another hunk. Specs in `tests/unit` (`make test`).
+  - Next: while fresh, record each note's hunk content (removed and added
+    lines, plus a few context lines), in memory and under `stdpath("state")`,
+    keyed by repo and notes content.
+  - Then: once stale, find each note's hunk by that content, context breaking
+    ties. Its hunk edited (removed lines still match), or a tie left: show
+    the note as outdated (own group in trouble), don't guess. No snapshot:
+    line matching plus the stale mark, as now.
+  - Specs to add with it: gitsigns-style reset in a buffer, an nvim restart
+    (snapshot read back), identical hunks.
+
+  How others do it (researched 2026-11-15): postilla.nvim (target text, sha256,
+  5 context lines; extmark live, then exact search, context tie-break; none or
+  tie: ⚠ stale) and code-review.nvim (text and 2 context lines; exact, moved,
+  then bigram-Dice fuzzy ≥ 0.8; not found: `outdated`) match content, as we will.
+  GitLab maps lines through diffs between versions (`PositionTracer`,
+  `LineStrategy`) and marks notes outdated when their line left the diff; for us
+  that's a git tree snapshot of the working tree and `git diff <tree>`, the
+  fallback if content matching proves flaky. CodeCompanion and review.nvim keep
+  line numbers (review.nvim moves them with extmarks, saved on write).
 - Live reload: `:checktime` on `FocusGained`, `BufEnter` and `CursorHold`
   in `config/nvim/lua/autocommands.lua`, with a notice per reloaded file;
   `focus-events on` in `config/tmux/tmux.conf` (needs a `source-file` or a
