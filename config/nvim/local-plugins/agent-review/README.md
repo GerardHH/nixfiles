@@ -153,9 +153,19 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
 
 ## Tests
 
-Specs in `tests/unit`, run by plenary.nvim's busted in headless nvim. They drive
-`collect` on scratch git repositories made per test (`tests/helpers.lua`), with
-file times set rather than waited for. See the `Makefile` for what runs where:
+Specs in `tests/unit`, run by plenary.nvim's busted in headless nvim, on scratch
+git repositories made per test (`tests/helpers.lua`), with file times set rather
+than waited for:
+
+- `diff_spec.lua`: hunks, new, deleted and removal-only changes, sorting.
+- `notes_spec.lua`: the notes format.
+- `stale_spec.lua`: stale notes and their warning.
+- `quickfix_spec.lua`: `to_quickfix` and its cursor sync.
+- `review_display_spec.lua`: inline marks, side by side, switching layouts.
+- `watch_spec.lua`: the notes watch.
+
+trouble.nvim isn't loaded: its source only adapts `collect`. See the `Makefile`
+for what runs where:
 
 ```sh
 make test                                     # clones plenary.nvim first
