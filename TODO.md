@@ -31,7 +31,7 @@ Delete an item when it's done; git history keeps it.
 
 ## Now
 
-### 2026-11-14 · How I take in changes from Claude and Copilot
+### 2026-11-15 · How I take in changes from Claude and Copilot
 
 The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
 `claude-take` (`config/bash/claude.sh`), didn't work well. Easy path first
@@ -59,7 +59,11 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   prompt for the agent); pick another if it's ever published. The agent
   rewrites the notes every turn to describe what's still unstaged; the same
   text makes the chat summary. Rules for both in `config/claude/CLAUDE.md`.
-  Try it in real rounds and adjust.
+  Try it in real rounds and adjust. Compared with existing plugins
+  (2026-11-15) and kept: the closest is codediff.nvim with review.nvim (git
+  diff with stage/discard per hunk, typed comments exported as markdown, no
+  quickfix); an idea worth taking is code-review.nvim's comment threads that
+  the agent answers through a CLI.
 - Taken in; the sandbox writes in the project and not elsewhere in home
   (tested). Left: real rounds with `<leader>qg`, to see how it works out.
 - Stale note lines: after I reset or edit a hunk, the notes' line numbers
@@ -71,12 +75,13 @@ The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
   which my edits don't move) next to the line range, and the plugin maps old
   ranges onto the live `git diff --unified=0`. Simpler fallback: snap each
   note to the nearest live hunk, and drop notes with no hunk left.
-- Live reload: after the agent's turn I had to `:e` to see its changes in an
-  open buffer. nvim's `autoread` is on by default but only acts when it
-  checks, which it does on focus or shell commands, not on its own: a
-  `:checktime` on `FocusGained`, `BufEnter`, `CursorHold` (and maybe a
-  `vim.uv` fs watcher, or from `<leader>qg` itself) would pick it up. Check
-  whether tmux passes focus events (`focus-events on`).
+- Live reload: `:checktime` on `FocusGained`, `BufEnter` and `CursorHold`
+  in `config/nvim/lua/autocommands.lua`, with a notice per reloaded file;
+  `focus-events on` in `config/tmux/tmux.conf` (needs a `source-file` or a
+  new tmux server). Tested headless. Left: try it in a real round. If
+  changes that land while I sit idle in nvim still need a keypress
+  (`CursorHold` fires once per idle spell), add a `vim.uv` fs watcher on
+  the loaded buffers' directories.
 - Inside the sandbox, `git status` lists the protected names that don't
   exist in the project (`.bashrc`, `.gitconfig`, `.vscode`,
   `.claude/settings.json`, …) as untracked: bwrap's mount points, visible
@@ -604,24 +609,6 @@ Keys to the layers in `README.md` and the groups in `which-key.lua`
 those, not a group of its own.
 
 ## Later
-
-### 2026-11-14 · Existing plugins instead of agent-review
-
-Check whether one of these could replace our local agent-review plugin
-(`config/nvim/local-plugins/agent-review`, see "How I take in changes" in
-Now), or has ideas worth taking. What ours does that matters: works on
-plain git for any agent (staged means accepted), the agent's notes per hunk
-grouped by round, in trouble.nvim, the diff inline or side by side. Seen
-only in search results so far; read the READMEs and check how maintained:
-
-- review.nvim (georgeguimaraes/review.nvim): review plugin for AI-written
-  changes.
-- code-preview.nvim (Cannon07/code-preview.nvim): catches the agent's
-  edits before they reach disk and shows them as a native nvim diff; accept
-  and reject stay in the agent's CLI. Backends for Claude Code, OpenCode,
-  Copilot CLI and Codex CLI.
-- hunk-review.nvim (shaunchander/hunk-review.nvim): two-pane reviewer on
-  `git diff`, made for AI-written code; exports hunks as JSON for agents.
 
 ### 2026-10-26 · Publish neotest-testmate as a plugin
 
