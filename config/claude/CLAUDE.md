@@ -27,7 +27,8 @@
   - Title: the change as a commit subject, in the repository's commit style
     (here `feat: nvim: …` without the type).
   - One `## path` heading per file, path from the repository root; under
-    it one item per change on one line, its lines in the working tree as
+    it one item per change, wrapped like any markdown (continuation
+    lines indented), its lines in the working tree as
     `git diff --unified=0` gives them (`1` for a new or deleted file).
     Changes that share a note go in one item, their lines separated by
     commas.
@@ -37,6 +38,9 @@
   - Cover every unstaged hunk and untracked file you made, this turn's and
     earlier ones I haven't staged or reset yet; drop the items for the rest.
     A new change, with a different title, starts the file afresh.
+- After writing Markdown, run the project's Markdown linter with its config
+  (e.g. `rumdl check`, `.rumdl.toml`) and fix the warnings in the lines you
+  touched, `.agent-notes.md` included; leave the rest of the file as it is.
 - Experiments, scratch builds, copies for running tests, and logs go in the
   session scratchpad, not in the project.
 - End a turn that changed files with the same summary in chat: the notes
