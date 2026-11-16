@@ -61,7 +61,7 @@ something the agent can't skip:
   real warnings. The `.luarc.json` may fix that; see also the language
   servers item in Inbox.
 
-### 2026-11-15 · How I take in changes from Claude and Copilot
+### 2026-11-16 · How I take in changes from Claude and Copilot
 
 The old flow, proposals in `/tmp/claude-1000` taken in with `claude-diff` and
 `claude-take` (`config/bash/claude.sh`), didn't work well. Easy path first
@@ -204,9 +204,11 @@ accepted.
 - Pointing the agent at code: `<leader>yr` copies `path/from/root:42`, or
   `:42-58` for a visual range (`config/nvim/lua/copy_reference.lua`, git
   root else the cwd; the root the status line in "nvim wishes" in Next can
-  reuse). Maybe: the selection as a fenced code block with the language from
-  `filetype` (```` ```cpp ````; a small map where names differ, e.g. `sh` →
-  `bash`), the reference above it, on another `<leader>y` key.
+  reuse); `<leader>yf` the file's path alone; `<leader>yR` and `<leader>yF`
+  the same with the absolute path. Maybe: the selection as a fenced code
+  block with the language from `filetype` (```` ```cpp ````; a small map
+  where names differ, e.g. `sh` → `bash`), the reference above it, on
+  another `<leader>y` key.
 
 Instead of or on top of that, approval per edit as it happens, from nvim:
 

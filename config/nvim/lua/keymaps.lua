@@ -47,8 +47,27 @@ keymap(
     { desc = "Yank reference (path:line)" }
 )
 keymap(
+    "n",
+    "<leader>yR",
+    function() require("copy_reference").copy_cursor({ full_path = true }) end,
+    { desc = "Yank reference, full path (path:line)" }
+)
+keymap(
     "x",
     "<leader>yr",
     function() require("copy_reference").copy_selection() end,
     { desc = "Yank reference (path:first-last)" }
+)
+keymap(
+    "x",
+    "<leader>yR",
+    function() require("copy_reference").copy_selection({ full_path = true }) end,
+    { desc = "Yank reference, full path (path:first-last)" }
+)
+keymap("n", "<leader>yf", function() require("copy_reference").copy_file() end, { desc = "Yank file path" })
+keymap(
+    "n",
+    "<leader>yF",
+    function() require("copy_reference").copy_file({ full_path = true }) end,
+    { desc = "Yank full file path" }
 )
