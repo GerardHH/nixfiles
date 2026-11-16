@@ -204,8 +204,9 @@ accepted.
 - Pointing the agent at code: `<leader>yr` copies `path/from/root:42`, or
   `:42-58` for a visual range (`config/nvim/lua/copy_reference.lua`, git
   root else the cwd; the root the status line in "nvim wishes" in Next can
-  reuse); `<leader>yf` the file's path alone; `<leader>yR` and `<leader>yF`
-  the same with the absolute path. Maybe: the selection as a fenced code
+  reuse); `<leader>yf` the file's path alone, `<leader>yd` its directory;
+  `<leader>yR`, `<leader>yF` and `<leader>yD` the same with the absolute
+  path. Maybe: the selection as a fenced code
   block with the language from `filetype` (```` ```cpp ````; a small map
   where names differ, e.g. `sh` → `bash`), the reference above it, on
   another `<leader>y` key.

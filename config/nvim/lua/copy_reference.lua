@@ -68,4 +68,13 @@ function M.copy_file(options)
     if reference_path then copy_text(reference_path) end
 end
 
+-- The directory the current file is in: for naming a module or package rather than
+-- one file. Relative to the reference root like the other copies, so a file at the
+-- root itself gives ".".
+---@param options? { full_path?: boolean }
+function M.copy_directory(options)
+    local reference_path = current_file_path((options or {}).full_path)
+    if reference_path then copy_text(vim.fs.dirname(reference_path)) end
+end
+
 return M

@@ -71,3 +71,10 @@ keymap(
     function() require("copy_reference").copy_file({ full_path = true }) end,
     { desc = "Yank full file path" }
 )
+keymap("n", "<leader>yd", function() require("copy_reference").copy_directory() end, { desc = "Yank directory path" })
+keymap(
+    "n",
+    "<leader>yD",
+    function() require("copy_reference").copy_directory({ full_path = true }) end,
+    { desc = "Yank full directory path" }
+)
