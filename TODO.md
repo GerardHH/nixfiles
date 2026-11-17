@@ -57,6 +57,13 @@ renamed with it. Jetify's Devbox (jetify-com/devbox) is a nix-based CLI called
 `devbox`, so the bare name clashes on `PATH` and in searches; nix-devbox doesn't
 (check it isn't taken too).
 
+Front end (decided 2026-11-17): agentic.nvim in the devbox, driving Claude Code
+(through `claude-agent-acp`) and Copilot CLI (`copilot --acp`) over ACP, each
+with its own login, so every subscription stays in the harness it's allowed in.
+What it does with permissions and why it won over codecompanion.nvim: the ACP
+bullet in "How I take in changes" in Next. The devbox comes in variants, one
+personal and one per work context (see "Which model may see what" below).
+
 Two rules follow from it:
 
 - No secrets in the container: whatever is in there, the agent can read and
@@ -166,7 +173,12 @@ Shape:
   `/sandbox enable`).
 - Projects without `.devcontainer/` (nixfiles, personal ones): a default
   image (plain Ubuntu plus the `container` profile), so one script serves all.
-- Install: `modules/claude.nix` and Copilot CLI (nixpkgs attr: check) in the
+- nvim on the host stays, without the agent plugins: there it has the
+  secrets (git credentials, sops), the box has the agents. One nvim config
+  for both, the agent plugins only where the profile says so (e.g. a flag
+  the profile writes for nvim, as `nix_languages.lua` does for languages).
+- Install: `modules/claude.nix`, Copilot CLI (`github-copilot-cli`, 1.0.61 in
+  our nixpkgs) and, for agentic.nvim, `claude-agent-acp` (0.36.1) in the
   `container` profile, or an `agents` module that profiles import. Images
   need nothing: neither ours nor work's has bwrap, but nixpkgs' `claude-code`
   brings bubblewrap and socat itself (its wrapper puts socat on `PATH`, and it
@@ -217,31 +229,40 @@ Bedrock/Vertex; ask at work what's approved). My own Claude subscription and
 personal Copilot only for personal projects. Fix it per container, not per
 prompt, so picking wrong can't happen:
 
-- Context from the workspace: under `~/git/lely` (the path `gitconfig`'s
-  `includeIf` already uses), or a marker in the project → work; else
-  personal. An override only towards work. Check the resolved path, so a
+- Variants: one personal devbox, and a work devbox per work context: lely
+  now, more as projects come (another customer, a project under its own
+  contract or toolchain). Each variant is a profile, in place of the one
+  `container` profile now (on the host, `lely` imports `personal`): a shared
+  devbox module (nvim, agentic.nvim, shell, the agent harnesses) plus a small
+  module per variant with what differs: tools (check what the work setup
+  needs, e.g. Artifactory's CLI), the agent and token, the egress allowlist,
+  the managed settings (models), and the workspace paths it serves. Adding a
+  variant should be one new module and one entry in a list, not edits across
+  the scripts.
+- Context from the workspace: each work variant names its paths (lely:
+  `~/git/lely`, the path `gitconfig`'s `includeIf` already uses) or a marker
+  in the project; anything unclaimed is personal. An override only towards
+  work, never from one work variant to another. Check the resolved path, so a
   symlink can't hide a work folder; a work forge in the git remotes is a
   second sign.
-- A work and a personal profile for the box, in place of the one `container`
-  profile now (on the host, `lely` imports `personal`). They may differ in
-  tools (check what the work setup needs, e.g. Artifactory's CLI) and in the
-  agent and token they carry.
-- The personal box refuses work: the script stops with an error before
-  starting a personal box on a work workspace, so it never mounts the code.
+- A box refuses other variants' workspaces: the script stops with an error
+  before starting the personal box on work code, or one work variant's box on
+  another's (their contracts and tokens may differ), so it never mounts the
+  code.
 - Model token: a container gets only its context's, never both, and nothing
   else (see the Copilot item below). Work: a token of the work GitHub account
   in `COPILOT_GITHUB_TOKEN`; for Claude the company's key or Bedrock variables
   (`CLAUDE_CODE_USE_BEDROCK`). Personal: `CLAUDE_CODE_OAUTH_TOKEN` from
   `claude setup-token`, and my own GitHub token.
-- Egress: the work allowlist names only the work endpoints, so a wrong setting
-  fails to connect instead of sending code out.
+- Egress: each work variant's allowlist names only its own endpoints, so a
+  wrong setting fails to connect instead of sending code out.
 - Models: the work org's Copilot policy decides which models the work account
   gets (Claude models through Copilot too). Claude Code: managed settings
   (`/etc/claude-code/managed-settings.json`, in the image or bind-mounted) pin
   `model` and may limit the picker (`availableModels`; check). Copilot CLI:
   `--model`, or `model` in its config.
-- Show it: `config/claude/statusline.sh` and the bash prompt show WORK or
-  PERSONAL inside the container.
+- Show it: `config/claude/statusline.sh`, the bash prompt and agentic.nvim's
+  window show the variant's name (PERSONAL, LELY, …) inside the container.
 
 ### 2026-11-17 · Copilot CLI in the container
 
@@ -475,17 +496,76 @@ Instead of or on top of that, approval per edit as it happens, from nvim:
 - claudecode.nvim (coder) speaks Claude Code's IDE protocol, the one VSCode
   uses: each edit opens as a diff to accept or reject. Claude only.
 - ACP (Agent Client Protocol): Copilot CLI has an ACP server (GitHub docs:
-  `copilot-cli-reference/acp-server`), Claude Code works through an adapter
-  (`claude-code-acp`; check), and nvim clients such as codecompanion.nvim
-  drive either. One front-end for both; check which clients show edits as
-  diffs to accept.
+  `copilot-cli-reference/acp-server`), Claude Code works through Zed's
+  adapter (`claude-agent-acp`, on the Agent SDK), and nvim clients such as
+  codecompanion.nvim drive either. One front-end for both, each subscription
+  in its own harness: decided (2026-11-17) for keeping work on Copilot and
+  personal on Claude, with agentic.nvim in the devbox (see Now). Check
+  whether the adapter counts as Claude Code under Anthropic's terms (below);
+  claudecode.nvim runs the Claude Code binary itself, so it's safe either
+  way. Plugins to try (2026-11-17):
+  - codecompanion.nvim: adapters `claude_code` (`claude-agent-acp`) and
+    `copilot_acp` (`copilot --acp --stdio`). Edits ask permission in the
+    chat: `gv` shows the diff, `g1`–`g4` always/once/reject/cancel; `gty`
+    switches Ask, Auto and YOLO; `/resume` loads the agent's sessions;
+    `:CodeCompanionCLI` runs the agent's own TUI instead.
+  - Our Claude settings through the adapter (its source, checked
+    2026-11-17): it loads `settingSources` user, project and local, so
+    `config/claude/settings.json` applies (deny rules, sandbox, auto mode),
+    and Claude's own tools run in Claude Code, so Bash stays in bwrap. Its
+    permission questions go to the client, whose YOLO and Auto modes answer
+    them itself (allow once). From npm it runs the SDK's bundled `claude`;
+    nixpkgs' `claude-agent-acp` wraps it with `CLAUDE_CODE_EXECUTABLE` set
+    to nixpkgs' `claude-code`, so install it through nix. It offers the
+    client "Bypass permissions" unless
+    `permissions.disableBypassPermissionsMode` is `"disable"`: proposed
+    (2026-11-17) in `/tmp/claude-1000/nixfiles/config/claude/settings.json`
+    (`claude-diff`, `claude-take`). It also blocks
+    `--dangerously-skip-permissions`; revisit for the box, see "Inside, the
+    agent may skip its own prompts" in Now. Check: CLAUDE.md loading.
+    Copilot CLI gets none of this: its own rules, the container as the
+    boundary.
+  - agentic.nvim (carlos-algms): ACP only, providers `claude-agent-acp` and
+    `copilot-acp`; edits as split or inline diff (`]c`/`[c`), permission
+    buttons; sessions shared with the terminal CLI. Needs nvim 0.11.
+    Decided (2026-11-17), as the thinner wrapper. Its source (checked
+    2026-11-17): it offers the agent no file or terminal access of its
+    own and sends no `_meta`, so Claude does all edits and commands
+    itself under our settings; every permission question waits for me (no
+    auto-approve); the agent inherits nvim's whole environment, plus
+    `CLAUDE_CODE_ENTRYPOINT=agentic-nvim` so `claude --resume` sees its
+    sessions. `<S-Tab>` cycles the agent's modes, which can land on
+    "Bypass permissions" (see the gap above), and a provider's
+    `default_mode` sets one per session. It installs neither adapters nor
+    agents ("for security reasons"): `claude-agent-acp` and `copilot` come
+    from nix.
+  - sidekick.nvim (folke): the real CLIs (`claude`, `copilot`) in a
+    terminal, with keys to send the file, selection or diagnostics;
+    sessions in tmux survive restarts. No adapter, so no terms question.
+    Its Copilot next-edit suggestions need the Copilot language server.
+  - Also listed: avante.nvim (Cursor-like sidebar, ACP among its
+    providers), hermes.nvim (Ruddickmg; new, check).
+  - The adapter's npm name: `@zed-industries/claude-agent-acp` in
+    codecompanion's guide, `@agentclientprotocol/claude-agent-acp` in
+    agentic's; check which is current.
+
+Claude subscription outside Claude Code (checked 2026-11-17): not allowed.
+Anthropic's legal page (code.claude.com, "Legal and compliance") limits plan
+logins to Claude Code and its own apps; third-party apps may not route requests
+through plan credentials. Enforced since 2026-04-04, with such use billed as
+extra usage; OpenCode dropped its Claude login after legal demands (2026-03).
+Plan logins in the Agent SDK and `claude -p` still draw from plan limits
+(support article, update 2026-10-07). So in Pi or OpenCode, Claude means an API
+key (per token), or Claude models through Copilot.
 
 One harness for both, e.g. Pi (earendil-works/pi, was badlogic/pi-mono): a
-minimal agent CLI you extend yourself (extensions, skills, prompt templates;
-an RPC mode over JSONL for editors, and a TypeScript SDK). It takes a Copilot
-token (`COPILOT_GITHUB_TOKEN`) and Anthropic credentials (`ANTHROPIC_API_KEY`
-or `ANTHROPIC_OAUTH_TOKEN`); check whether my Claude subscription works there
-and is allowed under its terms. Out of the box it has no permission system or
+minimal agent CLI you extend yourself (extensions, skills, prompt templates; an
+RPC mode over JSONL for editors, and a TypeScript SDK). It takes a Copilot token
+(`COPILOT_GITHUB_TOKEN`) and Anthropic credentials (`ANTHROPIC_API_KEY` or
+`ANTHROPIC_OAUTH_TOKEN`; it still offers a Claude Pro/Max login, which the terms
+above rule out). OpenCode is the other candidate: GitHub supports it officially
+with Copilot Pro, Pro+, Business and Enterprise (changelog 2026-01-16); ask
+whether the work org allows it. Out of the box Pi has no permission system or
 sandbox and runs with my rights. Community extensions add both
 (`pi install npm:<name>`):
 
