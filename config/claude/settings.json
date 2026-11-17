@@ -15,6 +15,7 @@
       "Read(~/.jfrog)"
     ],
     "defaultMode": "auto",
+    "disableBypassPermissionsMode": "disable",
     "blockWritesOutsideWorkingDirectories": true,
     "additionalDirectories": [
       "/tmp/claude-1000"
