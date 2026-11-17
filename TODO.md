@@ -30,6 +30,15 @@ Delete an item when it's done; git history keeps it.
   directory name, so e.g. `~/**/.env`, `/run/**/secrets.d`; check which
   paths matter.
 
+- 2026-11-17 · lazygit left open idles at ~50% of a core (seen: 32 min, its
+  `git` and `delta` children respawning), enough to keep the laptop at 95 °C
+  and throttling; closing it cooled things down, so for now I keep it closed.
+  Suspects: the 10 s auto-refresh (`refresher.refreshInterval`) redrawing the
+  main view through delta (`diffRenderers` in `config/lazygit/config.yml`),
+  worst with a big diff or the `git list-tree` graph selected; check which
+  panel, then raise the interval or limit the graph. The laptop also runs in
+  `performance` platform profile, which makes light loads run hot.
+
 ## Now
 
 ### 2026-11-17 · Dev-containers as the sandbox
