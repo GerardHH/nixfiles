@@ -15,6 +15,13 @@ return {
         end
 
         local palette = require("catppuccin.palettes.mocha")
+
+        -- agentic.nvim names its buffers after their window headers ("󰦨 Prompt
+        -- | submit: <C-s> | change mode: <S-Tab>"); the header itself shows
+        -- in its winbar, so the status line keeps only the title before the
+        -- first " | ". Other panels' names have no " | " and pass unchanged.
+        local function panel_title(buffer_name) return (buffer_name:gsub(" | .*$", "")) end
+
         local panels = {
             filetypes = {
                 "dap-repl",
@@ -25,12 +32,20 @@ return {
                 "dapui_watches",
                 "neotest-output-panel",
                 "neotest-summary",
+                "AgenticChat",
+                "AgenticCode",
+                "AgenticDiagnostics",
+                "AgenticFiles",
+                "AgenticInput",
+                "AgenticTodos",
             },
             sections = {
-                lualine_c = { { "filename", file_status = false, color = { fg = palette.sky } } },
+                lualine_c = {
+                    { "filename", file_status = false, fmt = panel_title, color = { fg = palette.sky } },
+                },
             },
             inactive_sections = {
-                lualine_c = { { "filename", file_status = false } },
+                lualine_c = { { "filename", file_status = false, fmt = panel_title } },
             },
         }
 
