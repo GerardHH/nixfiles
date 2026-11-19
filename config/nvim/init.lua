@@ -21,6 +21,7 @@ vim.opt.rtp:prepend(lazypath)
 local nix_runtime = vim.env.NVIM_NIX_RUNTIME
 
 require("lazy").setup("plugins", {
+    lockfile = vim.fn.stdpath("data") .. "/lazy-lock.json",
     checker = {
         enabled = true,
         notify = false,
