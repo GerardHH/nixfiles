@@ -568,20 +568,30 @@ Instead of or on top of that, approval per edit as it happens, from nvim:
     `CLAUDE_CODE_ENTRYPOINT=agentic-nvim` so `claude --resume` sees its
     sessions. `<S-Tab>` cycles the agent's modes, which can land on
     "Bypass permissions" (refused, see above), and a provider's
-    `default_mode` sets one per session. Effort per session:
-    `<localleader>t` picks it (the adapter's `effort` config option),
-    `default_thought_level` in the provider's config sets it at start. It
+    `default_mode` sets one per session. Effort per session: `<leader>ae`
+    picks it (the adapter's `effort` config option); sessions start at
+    medium (`default_thought_level` under `acp_providers` in our spec). It
     installs neither adapters nor agents ("for security reasons"):
     `claude-agent-acp` and `copilot` come from nix. On trial on the host
     (2026-11-19): spec and keys in `config/nvim/lua/plugins/agentic.lua`
     (`<leader>aa` chat, `<leader>ac` add context; loads only where
-    `claude-agent-acp` is on `PATH`), adapter in `home/modules/claude.nix`;
-    render-markdown draws the chat (`AgenticChat` in its `file_types`, in
-    `config/nvim/lua/plugins/markdown.lua`). Sessions start in auto mode.
-    Left: `:checkhealth agentic`, whether `/effort` is among its slash
-    commands, then real rounds beside the terminal CLI. In its buffers
-    `<localleader>` is our space, so its `<localleader>l`/`m`/`o`/`t`
-    shadow those `<leader>` groups there.
+    `claude-agent-acp` is on `PATH`), adapter in `home/modules/claude.nix`.
+    Its keys inside the widget moved from `<localleader>` (our space, so
+    they clashed with our `<leader>` groups) to `<leader>a`: `m` model, `e`
+    effort, `o` options, `l`, `]` and `[` sessions, `P` provider, `K`
+    destroy session, `p` paste image. Its context panels stay where agentic
+    puts them, between chat and prompt: moving them below the prompt (by
+    wrapping its internal `WidgetLayout.open`) made a referenced file's
+    panel too tall, so that's dropped for now. lualine shows its windows as
+    panels, like dap-ui's; render-markdown draws the chat (`AgenticChat` in
+    its `file_types`, in `config/nvim/lua/plugins/markdown.lua`). Sessions
+    start in auto mode. `/` commands don't work from its prompt (`/effort
+    high` reached Claude as plain text, 2026-11-19); fine, effort goes
+    through `<leader>ae`. Files go in through agentic's own `@` picker or a
+    `<leader>yr` reference. Left: try the keys; check that the `@` picker
+    works beside blink.cmp (it didn't once, cause not pinned down;
+    agentic's README turns blink off in `AgenticInput` for that);
+    `:checkhealth agentic`; then real rounds beside the terminal CLI.
   - sidekick.nvim (folke): the real CLIs (`claude`, `copilot`) in a
     terminal, with keys to send the file, selection or diagnostics;
     sessions in tmux survive restarts. No adapter, so no terms question.
