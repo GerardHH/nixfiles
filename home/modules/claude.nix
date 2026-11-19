@@ -6,6 +6,7 @@
 {
     home.packages = with pkgs; [
         claude-code
+        claude-agent-acp
         jq
     ];
 

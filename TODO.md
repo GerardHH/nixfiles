@@ -344,7 +344,7 @@ toolchain and the hook runs there.
   real warnings. The `.luarc.json` may fix that; see also the language
   servers item in Inbox.
 
-### 2026-11-17 · How I take in changes from Claude and Copilot
+### 2026-11-19 · How I take in changes from Claude and Copilot
 
 To explore (2026-11-17), after the sandbox and Copilot in Now: the agent works
 in a git worktree of its own, on its own branch, so its work arrives as a real
@@ -545,14 +545,18 @@ Instead of or on top of that, approval per edit as it happens, from nvim:
     them itself (allow once). From npm it runs the SDK's bundled `claude`;
     nixpkgs' `claude-agent-acp` wraps it with `CLAUDE_CODE_EXECUTABLE` set
     to nixpkgs' `claude-code`, so install it through nix. It offers the
-    client "Bypass permissions" unless
-    `permissions.disableBypassPermissionsMode` is `"disable"`: proposed
-    (2026-11-17) in `/tmp/claude-1000/nixfiles/config/claude/settings.json`
-    (`claude-diff`, `claude-take`). It also blocks
+    client "Bypass permissions" whenever it doesn't run as root
+    (`ALLOW_BYPASS`), whatever the settings say; Claude Code then refuses
+    the switch, as `permissions.disableBypassPermissionsMode` is
+    `"disable"` (tried 2026-11-19: agentic shows "rejected because of
+    internal error"). That setting also blocks
     `--dangerously-skip-permissions`; revisit for the box, see "Inside, the
-    agent may skip its own prompts" in Now. Check: CLAUDE.md loading.
-    Copilot CLI gets none of this: its own rules, the container as the
-    boundary.
+    agent may skip its own prompts" in Now. CLAUDE.md, `TODO.md` and memory
+    load as in the CLI (checked 2026-11-19). Effort: the adapter takes the
+    starting level from a top-level `effortLevel` only, not from
+    `modelSettings`, so ours (`high` for Opus) doesn't reach it; it falls
+    back to `xhigh`, else `high` (its source). Copilot CLI gets none of
+    this: its own rules, the container as the boundary.
   - agentic.nvim (carlos-algms): ACP only, providers `claude-agent-acp` and
     `copilot-acp`; edits as split or inline diff (`]c`/`[c`), permission
     buttons; sessions shared with the terminal CLI. Needs nvim 0.11.
@@ -563,10 +567,21 @@ Instead of or on top of that, approval per edit as it happens, from nvim:
     auto-approve); the agent inherits nvim's whole environment, plus
     `CLAUDE_CODE_ENTRYPOINT=agentic-nvim` so `claude --resume` sees its
     sessions. `<S-Tab>` cycles the agent's modes, which can land on
-    "Bypass permissions" (see the gap above), and a provider's
-    `default_mode` sets one per session. It installs neither adapters nor
-    agents ("for security reasons"): `claude-agent-acp` and `copilot` come
-    from nix.
+    "Bypass permissions" (refused, see above), and a provider's
+    `default_mode` sets one per session. Effort per session:
+    `<localleader>t` picks it (the adapter's `effort` config option),
+    `default_thought_level` in the provider's config sets it at start. It
+    installs neither adapters nor agents ("for security reasons"):
+    `claude-agent-acp` and `copilot` come from nix. On trial on the host
+    (2026-11-19): spec and keys in `config/nvim/lua/plugins/agentic.lua`
+    (`<leader>aa` chat, `<leader>ac` add context; loads only where
+    `claude-agent-acp` is on `PATH`), adapter in `home/modules/claude.nix`;
+    render-markdown draws the chat (`AgenticChat` in its `file_types`, in
+    `config/nvim/lua/plugins/markdown.lua`). Sessions start in auto mode.
+    Left: `:checkhealth agentic`, whether `/effort` is among its slash
+    commands, then real rounds beside the terminal CLI. In its buffers
+    `<localleader>` is our space, so its `<localleader>l`/`m`/`o`/`t`
+    shadow those `<leader>` groups there.
   - sidekick.nvim (folke): the real CLIs (`claude`, `copilot`) in a
     terminal, with keys to send the file, selection or diagnostics;
     sessions in tmux survive restarts. No adapter, so no terms question.

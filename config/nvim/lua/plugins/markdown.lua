@@ -3,8 +3,10 @@ return {
         "MeanderingProgrammer/render-markdown.nvim",
         dependencies = { "nvim-treesitter/nvim-treesitter", "nvim-tree/nvim-web-devicons" },
         lazy = true,
-        ft = "markdown",
-        opts = {},
+        ft = { "markdown", "AgenticChat" },
+        opts = {
+            file_types = { "markdown", "AgenticChat" },
+        },
     },
     {
         "Kicamon/markdown-table-mode.nvim",
