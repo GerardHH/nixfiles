@@ -285,6 +285,34 @@ The same choice for Claude's token.
 
 ## Next
 
+### 2026-11-19 · An agent as first pass on colleagues' reviews
+
+High priority, apart from the devbox work. For merge requests by others (and
+their agents), not my own agent's changes: those keep the flow in "How I take in
+changes" below. Requests written with agents come in bigger and looser, and
+reviewing them takes me ever longer. Let an agent go over a request first, so I
+start from a list instead of the raw diff.
+
+- Start: the agent writes a Markdown file of findings, one per line as
+  `path:line: why it flagged this`, which `:cfile` or trouble loads (see "Lists
+  of results in trouble.nvim" below), and I work through it beside the diff
+  (see "GitLab/GitHub reviews in nvim" below, where my comments go back to the
+  forge). Claude Code's `/code-review` covers bugs (check its output format);
+  work code goes to Copilot only (see "Which model may see what" in Now).
+- Cheap first: what a machine can say without judgement. The request's
+  intent in a few lines, changes unrelated to it, size, files touched that
+  usually aren't, duplication of code that already exists, tests missing for
+  new paths. Checks that a linter or CI can own instead move there.
+- What matters most to me and is hardest to capture: readability, and
+  whether the change fits the architecture. Ideas: write down what I look
+  for as a review guide per project (`REVIEW.md`, or in `AGENTS.md`) with the
+  architecture's layers and rules, maybe as ADRs; gather my own past review
+  comments from the forge as examples of what I flag; ask the agent for
+  questions ("why does X now reach into Y?") rather than verdicts. Not sure
+  yet; try on a few real requests and compare with what I would have said.
+- Also the process side: ask authors for smaller requests and a description
+  of intent, so the agent and I both have something to check against.
+
 ### 2026-11-17 · Agents run formatters and analyzers
 
 Claude ran stylua and rumdl on the agent-review specs, but no Lua analyzer;
