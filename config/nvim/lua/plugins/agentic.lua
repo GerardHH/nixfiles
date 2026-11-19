@@ -11,6 +11,35 @@ return {
         provider_switcher = {
             hide_unhealthy_providers = true,
         },
+        keymaps = {
+            widget = {
+                switch_provider = "<leader>aP",
+                switch_model = "<leader>am",
+                -- Effort, the name Claude Code uses for the thought level.
+                change_thought_level = "<leader>ae",
+                open_options = "<leader>ao",
+                select_session = "<leader>al",
+                next_session = "<leader>a]",
+                prev_session = "<leader>a[",
+                -- K for kill: no confirmation, so not next to `<leader>ax`.
+                destroy_session = "<leader>aK",
+            },
+            prompt = {
+                paste_image = {
+                    { "<leader>ap", mode = { "n" } },
+                    -- agentic's default, as in Claude Code.
+                    { "<C-v>", mode = { "i" } },
+                },
+            },
+        },
+        acp_providers = {
+            ["claude-agent-acp"] = {
+                -- Each session starts at medium effort; the adapter ignores
+                -- `modelSettings` in Claude's settings and would start at
+                -- xhigh. `<leader>ae` changes it per session.
+                default_thought_level = "medium",
+            },
+        },
     },
     keys = {
         {
